@@ -53,7 +53,7 @@ public static class ForgeGenerator
             var modDir = Path.Combine(config.ModsDir, modId);
             if (!Directory.Exists(modDir))
             {
-                Console.WriteLine($"  WARN: mod dir not found: {modDir}");
+                Logger.EmitModError(modId, null, $"mod dir not found: {modDir}");
                 continue;
             }
             foreach (var txt in Directory.GetFiles(modDir, "*.txt"))
@@ -61,12 +61,13 @@ public static class ForgeGenerator
                 try
                 {
                     var mod = ModParser.Parse(txt);
+                    mod.ModId = modId;  // attribute the mod to its parent directory
                     mods.Add(mod);
                     Console.WriteLine($"  {Path.GetFileName(txt)} -> {mod.Variant} ({mod.ModName})");
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"  ERROR parsing {txt}: {ex.Message}");
+                    Logger.EmitModError(modId, null, $"parse-error: {Path.GetFileName(txt)}: {ex.Message}");
                 }
             }
         }
