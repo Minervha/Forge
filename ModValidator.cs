@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 // Invariants currently checked:
 //   - NameMapEntries: no null / empty / whitespace
