@@ -94,99 +94,107 @@ public static class AssetInjector
 
         foreach (var mod in addMods)
         {
-            // Add all NameMap entries for this mod
-            foreach (var nm in mod.NameMapEntries)
-                asset.AddNameReference(new FString(nm));
-
-            var row = DeepClone(templateRow);
-            row.Name = FName.FromString(asset, mod.ClothingId);
-
-            // OutfitName
-            var outfitName = Find<TextPropertyData>(row, "OutfitName");
-            if (outfitName != null)
-                outfitName.CultureInvariantString = new FString(mod.ClothingName);
-
-            // Slots
-            for (int i = 0; i < SlotNames.Length; i++)
+            try
             {
-                var slotStruct = Find<StructPropertyData>(row, SlotNames[i]);
-                if (slotStruct == null) continue;
-                if (!mod.Slots.TryGetValue(SlotKeys[i], out var slotData)) continue;
+                // Add all NameMap entries for this mod
+                foreach (var nm in mod.NameMapEntries)
+                    asset.AddNameReference(new FString(nm));
 
-                // ── Reset cloned slot to clean defaults (Naked row has body-specific values) ──
-                SetInt(Find<IntPropertyData>(slotStruct, "CensoringAreas"), 0);
+                var row = DeepClone(templateRow);
+                row.Name = FName.FromString(asset, mod.ClothingId);
 
-                // Meshes array [0]=normal, [1]=sex
-                var meshes = Find<ArrayPropertyData>(slotStruct, "Meshes");
-                if (meshes?.Value != null && meshes.Value.Length >= 2)
+                // OutfitName
+                var outfitName = Find<TextPropertyData>(row, "OutfitName");
+                if (outfitName != null)
+                    outfitName.CultureInvariantString = new FString(mod.ClothingName);
+
+                // Slots
+                for (int i = 0; i < SlotNames.Length; i++)
                 {
-                    SetSoftObject(asset, meshes.Value[0] as SoftObjectPropertyData,
-                        slotData.MeshPath, slotData.MeshName);
-                    SetSoftObject(asset, meshes.Value[1] as SoftObjectPropertyData,
-                        slotData.SexMeshPath, slotData.SexMeshName);
-                }
+                    var slotStruct = Find<StructPropertyData>(row, SlotNames[i]);
+                    if (slotStruct == null) continue;
+                    if (!mod.Slots.TryGetValue(SlotKeys[i], out var slotData)) continue;
 
-                // PreviewIcon
-                SetSoftObject(asset, Find<SoftObjectPropertyData>(slotStruct, "PreviewIcon"),
-                    slotData.IconPath, slotData.IconName);
+                    // ── Reset cloned slot to clean defaults (Naked row has body-specific values) ──
+                    SetInt(Find<IntPropertyData>(slotStruct, "CensoringAreas"), 0);
 
-                // Numeric fields — set ALL to mod values (overrides Naked defaults)
-                SetInt(Find<IntPropertyData>(slotStruct, "physicsAreas"), slotData.PhysicsAreas);
-                SetInt(Find<IntPropertyData>(slotStruct, "MuscleFlexRegions"), slotData.FlexRegions);
-                SetFloat(Find<FloatPropertyData>(slotStruct, "MorphTargetValue"), slotData.MorphTargetValue);
-                SetFloat(Find<FloatPropertyData>(slotStruct, "ArousalBlend"), slotData.ArousalBlend);
-
-                // MorphTarget — NamePropertyData. IsZero is ALWAYS false in v1 output.
-                var morphProp = Find<NamePropertyData>(slotStruct, "MorphTarget");
-                if (morphProp != null)
-                {
-                    if (slotData.MorphTarget == "null")
-                        morphProp.Value = FName.FromString(asset, "None");
-                    else
-                        morphProp.Value = FName.FromString(asset, slotData.MorphTarget);
-                    morphProp.IsZero = false; // always false in game data
-                }
-
-                // ConstraintProfile — same pattern
-                var constraintProp = Find<NamePropertyData>(slotStruct, "ConstraintProfile");
-                if (constraintProp != null)
-                {
-                    if (slotData.ConstraintProfile == "null")
-                        constraintProp.Value = FName.FromString(asset, "None");
-                    else
-                        constraintProp.Value = FName.FromString(asset, slotData.ConstraintProfile);
-                    constraintProp.IsZero = false;
-                }
-
-                // FurMasks array
-                var furMasks = Find<ArrayPropertyData>(slotStruct, "FurMasks");
-                if (furMasks?.Value != null)
-                {
-                    bool hasFur = slotData.FurMaskPath != "None" && !string.IsNullOrEmpty(slotData.FurMaskPath);
-                    if (hasFur)
+                    // Meshes array [0]=normal, [1]=sex
+                    var meshes = Find<ArrayPropertyData>(slotStruct, "Meshes");
+                    if (meshes?.Value != null && meshes.Value.Length >= 2)
                     {
-                        // Create fur mask entries
-                        var furEntries = new List<PropertyData>();
-                        var normalFur = new SoftObjectPropertyData();
-                        SetSoftObject(asset, normalFur, slotData.FurMaskPath, slotData.FurMaskName);
-                        furEntries.Add(normalFur);
+                        SetSoftObject(asset, meshes.Value[0] as SoftObjectPropertyData,
+                            slotData.MeshPath, slotData.MeshName);
+                        SetSoftObject(asset, meshes.Value[1] as SoftObjectPropertyData,
+                            slotData.SexMeshPath, slotData.SexMeshName);
+                    }
 
-                        if (slotData.SexFurMaskPath != "None" && !string.IsNullOrEmpty(slotData.SexFurMaskPath))
+                    // PreviewIcon
+                    SetSoftObject(asset, Find<SoftObjectPropertyData>(slotStruct, "PreviewIcon"),
+                        slotData.IconPath, slotData.IconName);
+
+                    // Numeric fields — set ALL to mod values (overrides Naked defaults)
+                    SetInt(Find<IntPropertyData>(slotStruct, "physicsAreas"), slotData.PhysicsAreas);
+                    SetInt(Find<IntPropertyData>(slotStruct, "MuscleFlexRegions"), slotData.FlexRegions);
+                    SetFloat(Find<FloatPropertyData>(slotStruct, "MorphTargetValue"), slotData.MorphTargetValue);
+                    SetFloat(Find<FloatPropertyData>(slotStruct, "ArousalBlend"), slotData.ArousalBlend);
+
+                    // MorphTarget — NamePropertyData. IsZero is ALWAYS false in v1 output.
+                    var morphProp = Find<NamePropertyData>(slotStruct, "MorphTarget");
+                    if (morphProp != null)
+                    {
+                        if (slotData.MorphTarget == "null")
+                            morphProp.Value = FName.FromString(asset, "None");
+                        else
+                            morphProp.Value = FName.FromString(asset, slotData.MorphTarget);
+                        morphProp.IsZero = false; // always false in game data
+                    }
+
+                    // ConstraintProfile — same pattern
+                    var constraintProp = Find<NamePropertyData>(slotStruct, "ConstraintProfile");
+                    if (constraintProp != null)
+                    {
+                        if (slotData.ConstraintProfile == "null")
+                            constraintProp.Value = FName.FromString(asset, "None");
+                        else
+                            constraintProp.Value = FName.FromString(asset, slotData.ConstraintProfile);
+                        constraintProp.IsZero = false;
+                    }
+
+                    // FurMasks array
+                    var furMasks = Find<ArrayPropertyData>(slotStruct, "FurMasks");
+                    if (furMasks?.Value != null)
+                    {
+                        bool hasFur = slotData.FurMaskPath != "None" && !string.IsNullOrEmpty(slotData.FurMaskPath);
+                        if (hasFur)
                         {
-                            var sexFur = new SoftObjectPropertyData();
-                            SetSoftObject(asset, sexFur, slotData.SexFurMaskPath, slotData.SexFurMaskName);
-                            furEntries.Add(sexFur);
+                            // Create fur mask entries
+                            var furEntries = new List<PropertyData>();
+                            var normalFur = new SoftObjectPropertyData();
+                            SetSoftObject(asset, normalFur, slotData.FurMaskPath, slotData.FurMaskName);
+                            furEntries.Add(normalFur);
+
+                            if (slotData.SexFurMaskPath != "None" && !string.IsNullOrEmpty(slotData.SexFurMaskPath))
+                            {
+                                var sexFur = new SoftObjectPropertyData();
+                                SetSoftObject(asset, sexFur, slotData.SexFurMaskPath, slotData.SexFurMaskName);
+                                furEntries.Add(sexFur);
+                            }
+                            furMasks.Value = furEntries.ToArray();
                         }
-                        furMasks.Value = furEntries.ToArray();
-                    }
-                    else
-                    {
-                        furMasks.Value = []; // empty
+                        else
+                        {
+                            furMasks.Value = []; // empty
+                        }
                     }
                 }
-            }
 
-            rows.Add(row);
+                rows.Add(row);
+            }
+            catch (System.Exception ex)
+            {
+                Logger.EmitModError(mod.ModId, mod, $"v2-inject(ClothesOutfit): {ex.GetType().Name}: {ex.Message}");
+                // Continue with next mod — partial NameMap orphans are harmless.
+            }
         }
     }
 
@@ -229,19 +237,27 @@ public static class AssetInjector
 
             foreach (var mod in charMods)
             {
-                asset.AddNameReference(new FString(mod.ClothingId));
-
-                if (handleTemplate != null)
+                try
                 {
-                    var handle = DeepClone(handleTemplate);
-                    handle.Name = FName.FromString(asset, nextIndex.ToString());
+                    asset.AddNameReference(new FString(mod.ClothingId));
 
-                    var rowNameProp = Find<NamePropertyData>(handle, "RowName");
-                    if (rowNameProp != null)
-                        rowNameProp.Value = FName.FromString(asset, mod.ClothingId);
+                    if (handleTemplate != null)
+                    {
+                        var handle = DeepClone(handleTemplate);
+                        handle.Name = FName.FromString(asset, nextIndex.ToString());
 
-                    handles.Add(handle);
-                    nextIndex++;
+                        var rowNameProp = Find<NamePropertyData>(handle, "RowName");
+                        if (rowNameProp != null)
+                            rowNameProp.Value = FName.FromString(asset, mod.ClothingId);
+
+                        handles.Add(handle);
+                        nextIndex++;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Logger.EmitModError(mod.ModId, mod, $"v2-inject(GameCharacterOutfits): {ex.GetType().Name}: {ex.Message}");
+                    // Continue with next mod — partial NameMap orphans are harmless.
                 }
             }
 
@@ -278,8 +294,18 @@ public static class AssetInjector
 
             // Add NameMap entries
             foreach (var mod in custMods.Where(m => m.Character.Equals(charName, StringComparison.OrdinalIgnoreCase)))
-                foreach (var nm in mod.NameMapEntries)
-                    asset.AddNameReference(new FString(nm));
+            {
+                try
+                {
+                    foreach (var nm in mod.NameMapEntries)
+                        asset.AddNameReference(new FString(nm));
+                }
+                catch (System.Exception ex)
+                {
+                    Logger.EmitModError(mod.ModId, mod, $"v2-inject(GameCharacterCustomization): {ex.GetType().Name}: {ex.Message}");
+                    // Continue with next mod — partial NameMap orphans are harmless.
+                }
+            }
 
             var charRow = rows.FirstOrDefault(r => r.Name.Value.Value == charName);
             if (charRow == null) continue;
@@ -347,8 +373,18 @@ public static class AssetInjector
 
         // Add NameMap entries from all tattoo mods
         foreach (var mod in tattooMods)
-            foreach (var nm in mod.NameMapEntries)
-                asset.AddNameReference(new FString(nm));
+        {
+            try
+            {
+                foreach (var nm in mod.NameMapEntries)
+                    asset.AddNameReference(new FString(nm));
+            }
+            catch (System.Exception ex)
+            {
+                Logger.EmitModError(mod.ModId, mod, $"v2-inject(Tattoo): {ex.GetType().Name}: {ex.Message}");
+                // Continue with next mod — partial NameMap orphans are harmless.
+            }
+        }
 
         foreach (var tattoo in allEntries)
         {
