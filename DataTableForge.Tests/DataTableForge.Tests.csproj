@@ -16,7 +16,7 @@
   <ItemGroup>
     <!-- Reference the source files from the main project so we can test
          internal helpers without making them public. -->
-    <!-- <Compile Include="..\Logger.cs" Link="src\Logger.cs" /> -->
+    <Compile Include="..\Logger.cs" Link="src\Logger.cs" />
     <Compile Include="..\ModParser.cs" Link="src\ModParser.cs" />
   </ItemGroup>
 
