@@ -65,7 +65,7 @@ public static class ModParser
     {
         var content = File.ReadAllText(txtPath);
         var variant = DetectVariant(content);
-        return variant switch
+        var mod = variant switch
         {
             ModVariant.Add => ParseAdd(content),
             ModVariant.Port => ParsePort(content),
@@ -73,6 +73,8 @@ public static class ModParser
             ModVariant.Tattoo => ParseTattoo(content),
             _ => throw new Exception($"Unknown variant in {txtPath}")
         };
+        mod.SourcePath = txtPath;
+        return mod;
     }
 
     static ModVariant DetectVariant(string content)
