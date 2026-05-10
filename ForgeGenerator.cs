@@ -36,7 +36,10 @@ public static class ForgeGenerator
         // Batch GC mode: reduces stop-the-world pauses on large heap (60MB+ JSON strings)
         var prevLatency = GCSettings.LatencyMode;
         GCSettings.LatencyMode = GCLatencyMode.Batch;
-        var originalModCount = config.Mods?.Length ?? 0;
+        // ForgeConfig.Mods is initialized to [] (ForgeConfig.cs:12), so the field is non-null;
+        // skipping the `?.` avoids a CS8602 cascade on the foreach below that flow-analyzes
+        // through the null path even though it's unreachable.
+        var originalModCount = config.Mods.Length;
 
         var totalSw = System.Diagnostics.Stopwatch.StartNew();
         var stepSw = new System.Diagnostics.Stopwatch();
