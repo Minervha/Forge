@@ -35,6 +35,8 @@ public class TattooData
 
 public class ModData
 {
+    public string ModId = "";       // directory name in <modsDir>/<modId>/, set by ForgeGenerator parse loop
+    public string SourcePath = "";  // absolute path of the .txt file, set by ModParser.Parse
     public string ModName = "", Author = "", Character = "";
     public ModVariant Variant;
     public string[] NameMapEntries = [];
