@@ -36,6 +36,7 @@ public static class ForgeGenerator
         // Batch GC mode: reduces stop-the-world pauses on large heap (60MB+ JSON strings)
         var prevLatency = GCSettings.LatencyMode;
         GCSettings.LatencyMode = GCLatencyMode.Batch;
+        var originalModCount = config.Mods?.Length ?? 0;
 
         var totalSw = System.Diagnostics.Stopwatch.StartNew();
         var stepSw = new System.Diagnostics.Stopwatch();
@@ -281,6 +282,7 @@ public static class ForgeGenerator
         {
             foreach (var err in writeErrors)
                 Console.Error.WriteLine($"  ERROR: {err}");
+            Logger.EmitSummary(originalModCount, pakOk: false);
             return 1;
         }
 
@@ -331,6 +333,7 @@ public static class ForgeGenerator
         if (proc.ExitCode != 0)
         {
             Console.Error.WriteLine($"repak failed (exit {proc.ExitCode}):\n{stderr}\n{stdout}");
+            Logger.EmitSummary(originalModCount, pakOk: false);
             return 1;
         }
 
@@ -350,6 +353,7 @@ public static class ForgeGenerator
         totalSw.Stop();
         EmitProgress(100, "Done");
         Console.WriteLine($"Done! Total: {totalSw.ElapsedMilliseconds}ms");
+        Logger.EmitSummary(originalModCount, pakOk: true);
         return 0;
     }
 
