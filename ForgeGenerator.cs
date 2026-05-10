@@ -288,11 +288,15 @@ public static class ForgeGenerator
             Console.WriteLine($"  {dtName} OK");
         EmitProgress(75, "DataTables written");
 
-        // 5. Copy mod assets (WildLifeC/ trees)
+        // 5. Copy mod assets (WildLifeC/ trees) — only for mods that survived validation.
+        //    A mod that was dropped during validation should not contaminate the pak with
+        //    its asset tree, even if its other shapes (DataTable injections) were skipped.
         EmitProgress(80, "Copying mod assets...");
         Console.WriteLine("[4/5] Copying mod assets...");
+        var keptModIds = new HashSet<string>(mods.Select(m => m.ModId));
         foreach (var modId in config.Mods)
         {
+            if (!keptModIds.Contains(modId)) continue;  // dropped at validation, skip its assets too
             var wlcSrc = Path.Combine(config.ModsDir, modId, "WildLifeC");
             if (Directory.Exists(wlcSrc))
             {
