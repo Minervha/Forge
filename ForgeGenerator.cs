@@ -73,6 +73,23 @@ public static class ForgeGenerator
         }
         Console.WriteLine($"  {mods.Count} mod entries parsed.");
 
+        // 1.5 Validate parsed mods — catch known structural failures (empty FStrings,
+        // missing required IDs) before they reach UAssetAPI. Invalid mods are emitted
+        // as mod-error events and removed from the working list; valid mods proceed.
+        {
+            var dropped = 0;
+            for (int i = mods.Count - 1; i >= 0; i--) {
+                var errors = ModValidator.Validate(mods[i]);
+                if (errors.Count > 0) {
+                    Logger.EmitModError(mods[i].ModId, mods[i], string.Join("; ", errors));
+                    mods.RemoveAt(i);
+                    dropped++;
+                }
+            }
+            if (dropped > 0)
+                Console.WriteLine($"  {dropped} mod(s) failed validation and were skipped.");
+        }
+
         // Deduplicate Add mods by ClothingId — last-wins (mirrors file-level conflict resolution).
         // When the same outfit exists in both a shop mod and a wlmm import, both get staged
         // with identical ClothingIds. Duplicate row names in a UE DataTable cause undefined
