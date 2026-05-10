@@ -18,6 +18,7 @@
          internal helpers without making them public. -->
     <Compile Include="..\Logger.cs" Link="src\Logger.cs" />
     <Compile Include="..\ModParser.cs" Link="src\ModParser.cs" />
+    <Compile Include="..\ModValidator.cs" Link="src\ModValidator.cs" />
   </ItemGroup>
 
   <ItemGroup>
