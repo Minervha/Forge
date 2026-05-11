@@ -19,6 +19,7 @@
     <Compile Include="..\Logger.cs" Link="src\Logger.cs" />
     <Compile Include="..\ModParser.cs" Link="src\ModParser.cs" />
     <Compile Include="..\ModValidator.cs" Link="src\ModValidator.cs" />
+    <Compile Include="..\JsonDiagnostics.cs" Link="src\JsonDiagnostics.cs" />
   </ItemGroup>
 
   <ItemGroup>

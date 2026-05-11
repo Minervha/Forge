@@ -251,7 +251,7 @@ public static class ForgeGenerator
             // v1 fallback: JSON-based DeserializeJson (sequential — too heavy to parallelize)
             if (injected != null && injected.ContainsKey(dtName))
             {
-                var asset = UAsset.DeserializeJson(injected[dtName]);
+                var asset = DeserializeJsonWithDiag(injected[dtName], dtName, config.OutputDir);
                 if (mappings != null) asset.Mappings = mappings;
                 asset.Write(Path.Combine(outDir, $"{dtName}.uasset"));
             }
@@ -266,7 +266,7 @@ public static class ForgeGenerator
                     if (!File.Exists(debugPath)) continue;
                     jsonSource = File.ReadAllText(debugPath);
                 }
-                var asset = UAsset.DeserializeJson(jsonSource);
+                var asset = DeserializeJsonWithDiag(jsonSource, dtName, config.OutputDir);
                 if (mappings != null) asset.Mappings = mappings;
                 try { Directory.CreateDirectory(Path.GetDirectoryName(basePath)!); asset.Write(basePath); } catch { }
                 asset.Write(Path.Combine(outDir, $"{dtName}.uasset"));
@@ -422,6 +422,49 @@ public static class ForgeGenerator
         foreach (var dir in Directory.GetDirectories(src))
         {
             CopyDirRecursive(dir, Path.Combine(dest, Path.GetFileName(dir)));
+        }
+    }
+
+    // Wraps UAsset.DeserializeJson with post-mortem diagnostics for the
+    // "Cannot add an empty FString" crash. On match, emits a structured
+    // dt-deserialize-error event with the suspect positions and dumps the
+    // failing JSON to disk for offline analysis. The exception is re-thrown
+    // unchanged so the surrounding error-handling path stays identical.
+    static UAsset DeserializeJsonWithDiag(string json, string dtName, string outputDir)
+    {
+        try
+        {
+            return UAsset.DeserializeJson(json);
+        }
+        catch (System.ArgumentException ex) when (ex.Message.Contains("empty FString") || ex.Message.Contains("name map"))
+        {
+            try
+            {
+                var diag = JsonDiagnostics.DiagnoseEmptyFString(json);
+                Logger.EmitEvent("dt-deserialize-error", new {
+                    dtName,
+                    errorType = "empty-FString",
+                    errorMessage = ex.Message,
+                    diagnostics = diag,
+                });
+            }
+            catch (System.Exception diagEx)
+            {
+                System.Console.Error.WriteLine($"  Could not produce diagnostics: {diagEx.Message}");
+            }
+
+            try
+            {
+                Directory.CreateDirectory(outputDir);
+                var dumpPath = Path.Combine(outputDir, $"{dtName}_failed_{System.DateTime.UtcNow:yyyyMMddHHmmss}.json");
+                File.WriteAllText(dumpPath, json);
+                System.Console.Error.WriteLine($"  Dumped failing JSON to {dumpPath}");
+            }
+            catch (System.Exception dumpEx)
+            {
+                System.Console.Error.WriteLine($"  Could not dump failing JSON: {dumpEx.Message}");
+            }
+            throw;
         }
     }
 }
