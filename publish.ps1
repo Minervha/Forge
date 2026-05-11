@@ -5,7 +5,24 @@ $ErrorActionPreference = "Stop"
 $StudioBin = "F:\Minervha\Studio\Minervha Studio\resources\forge\DataTableExtractor_bin"
 
 Write-Host "Building DataTableForge..." -ForegroundColor Cyan
-dotnet publish -c Release --no-self-contained -o ./publish/
+
+# Reproducible build: strip absolute local paths from PDB so the hash is stable
+# across machines. Helps SmartScreen / Defender reputation accrue across releases.
+$env:ContinuousIntegrationBuild = "true"
+
+# Explicit anti-AV-heuristic flags (also pinned in the .csproj as defence-in-depth):
+#  - no single-file bundle (looks like a self-extracting dropper)
+#  - no ReadyToRun / AOT (pre-jitted code is frequently flagged)
+#  - no trimming (breaks UAssetAPI reflection AND looks suspicious)
+#  - framework-dependent (smaller, less heuristic surface)
+dotnet publish -c Release `
+    --no-self-contained `
+    -p:PublishSingleFile=false `
+    -p:PublishReadyToRun=false `
+    -p:PublishTrimmed=false `
+    -p:Deterministic=true `
+    -p:ContinuousIntegrationBuild=true `
+    -o ./publish/
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build failed!" -ForegroundColor Red

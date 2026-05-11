@@ -7,6 +7,39 @@
     <RootNamespace>DataTableForge</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- Assembly identity / metadata.
+         Defender's ML model treats unsigned, "anonymous" .NET binaries
+         (no Company/Product/Description) as suspicious. Filling these in
+         materially reduces the false-positive rate. -->
+    <Company>Minervha Studio</Company>
+    <Product>Minervha Studio - DataTableForge</Product>
+    <Authors>Minervha Studio</Authors>
+    <Description>Reads and writes Unreal Engine DataTable (.uasset) files for Minervha Studio. Local tool, no network activity.</Description>
+    <Copyright>Copyright (c) Minervha Studio</Copyright>
+    <Version>0.4.2</Version>
+    <FileVersion>0.4.2.0</FileVersion>
+    <AssemblyVersion>0.4.2.0</AssemblyVersion>
+    <NeutralLanguage>en-US</NeutralLanguage>
+
+    <!-- Reproducible / deterministic builds.
+         ContinuousIntegrationBuild=true (set via env var in publish.ps1) strips
+         absolute local paths from the PDB. Stable hashes help build SmartScreen /
+         Defender cloud reputation across releases. -->
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+
+    <!-- Explicitly forbid build modes that trip AV heuristics:
+         - Single-file publish bundles native extractor stubs that look like droppers.
+         - ReadyToRun / AOT pre-jitted code is frequently flagged.
+         - Trimming rewrites IL and breaks reflection used by UAssetAPI. -->
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishTrimmed>false</PublishTrimmed>
+    <SelfContained>false</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
