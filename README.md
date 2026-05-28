@@ -25,28 +25,34 @@ DataTableForge.exe generate --config forge.config.json
   "repakExe": "path/to/repak.exe",
   "pakName": "MyMods",
   "userId": "your-id",
-  "mods": ["mod_folder_1", "mod_folder_2"]
+  "mods": ["mod_folder_1", "mod_folder_2"],
+  "modSources": {
+    "mod_folder_2": "path/to/overlay/for/mod_folder_2"
+  }
 }
 ```
 
 | Field | Description |
 |-------|-------------|
 | `buildDir` | Folder with extracted DataTables (`*_Default.json`, `*_Debug.json`, `AutoMod_P/`) |
-| `modsDir` | Parent folder containing mod subfolders |
+| `modsDir` | Parent folder containing mod subfolders — used as the implicit fallback for mods not listed in `modSources` |
 | `outputDir` | Where to write the `.pak` file |
 | `usmapPath` | Path to the `.usmap` mappings file for this game build |
 | `repakExe` | Path to `repak.exe` |
 | `pakName` | Output pak name (produces `{pakName}_P.pak`) |
 | `userId` | User identifier (used for staging subfolder) |
-| `mods` | Array of mod folder names inside `modsDir` |
+| `mods` | Array of mod ids — each must resolve to a directory either via `modSources[id]` or `modsDir/id` |
+| `modSources` | *Optional.* Per-mod content directory override. Lets callers point most mods straight at a shared cache while keeping a separate overlay dir for the few that need pre-processing (e.g. asset filtering). Omitted entries fall back to `modsDir/<modId>`. |
 
 ### Mod folder structure
 
-Each mod folder in `modsDir` should contain:
+Each mod folder (resolved via `modSources[modId]` or `modsDir/<modId>`) should contain:
 
 ```
 mod_folder/
 ├── ModName.txt          # Mod definition (see format below)
+├── AutoMod/             # Optional: legacy wlmm-import layout — *.txt files
+│   └── *.txt            #   here are scanned alongside the root-level rules
 ├── WildLifeC/           # UE5 assets (meshes, textures, materials)
 │   └── Content/
 │       └── ...

@@ -20,6 +20,10 @@
     <Compile Include="..\ModParser.cs" Link="src\ModParser.cs" />
     <Compile Include="..\ModValidator.cs" Link="src\ModValidator.cs" />
     <Compile Include="..\JsonDiagnostics.cs" Link="src\JsonDiagnostics.cs" />
+    <!-- ModDirResolver is pure (no UAssetAPI dep) so it links cleanly into the
+         test assembly; ForgeConfig is dragged in as a dependency. -->
+    <Compile Include="..\ModDirResolver.cs" Link="src\ModDirResolver.cs" />
+    <Compile Include="..\ForgeConfig.cs" Link="src\ForgeConfig.cs" />
   </ItemGroup>
 
   <ItemGroup>

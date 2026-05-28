@@ -54,13 +54,21 @@ public static class ForgeGenerator
         var mods = new List<ModData>();
         foreach (var modId in config.Mods)
         {
-            var modDir = Path.Combine(config.ModsDir, modId);
+            var modDir = ModDirResolver.Resolve(config, modId);
             if (!Directory.Exists(modDir))
             {
                 Logger.EmitModError(modId, null, $"mod dir not found: {modDir}");
                 continue;
             }
-            foreach (var txt in Directory.GetFiles(modDir, "*.txt"))
+            // Scan both the mod root and AutoMod/ — legacy wlmm imports keep
+            // their rule files under AutoMod/ instead of the mod root. Studio
+            // used to flatten them into a single dir during its staging copy;
+            // now that we read straight from ModCache, the scan has to do it.
+            var ruleFiles = Directory.GetFiles(modDir, "*.txt").ToList();
+            var autoModDir = Path.Combine(modDir, "AutoMod");
+            if (Directory.Exists(autoModDir))
+                ruleFiles.AddRange(Directory.GetFiles(autoModDir, "*.txt"));
+            foreach (var txt in ruleFiles)
             {
                 try
                 {
@@ -302,7 +310,7 @@ public static class ForgeGenerator
         foreach (var modId in config.Mods)
         {
             if (!keptModIds.Contains(modId)) continue;  // dropped at validation, skip its assets too
-            var wlcSrc = Path.Combine(config.ModsDir, modId, "WildLifeC");
+            var wlcSrc = Path.Combine(ModDirResolver.Resolve(config, modId), "WildLifeC");
             if (Directory.Exists(wlcSrc))
             {
                 CopyDirRecursive(wlcSrc, Path.Combine(stagingDir, "WildLifeC"));
