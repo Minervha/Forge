@@ -11,6 +11,10 @@ public class ForgeConfig
     [JsonProperty("userId")]    public string UserId { get; set; } = "";
     [JsonProperty("mods")]      public string[] Mods { get; set; } = [];
 
+    // When true, fill empty sex-mesh slots (Meshes[1]) on every BASE DT_ClothesOutfit
+    // row by copying Meshes[0]. Defaults to false; legacy configs without the key stay off.
+    [JsonProperty("fillEmptySexSlots")] public bool FillEmptySexSlots { get; set; }
+
     // Per-mod content directory override. When a modId is present here, the
     // mapped absolute path replaces the implicit ModsDir/<modId> lookup —
     // letting Studio point most mods at the ModCache directly while keeping

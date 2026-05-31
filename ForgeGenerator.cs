@@ -161,7 +161,7 @@ public static class ForgeGenerator
 
         StartStep("v2-inject");
         directAssets = AssetInjector.InjectAll(
-            config.BuildDir, config.UsmapPath, mods.ToArray(), characters);
+            config.BuildDir, config.UsmapPath, mods.ToArray(), characters, config.FillEmptySexSlots);
         EndStep();
 
         // Mod breakdown for diagnostics
@@ -260,6 +260,11 @@ public static class ForgeGenerator
             if (injected != null && injected.ContainsKey(dtName))
             {
                 var asset = DeserializeJsonWithDiag(injected[dtName], dtName, config.OutputDir);
+                // v1 parity with AssetInjector (v2): fill empty sex-mesh slots on the
+                // base DT_ClothesOutfit rows when the option is on. Same method, same
+                // UAsset shape — the v1 path just reaches the asset via DeserializeJson.
+                if (config.FillEmptySexSlots && dtName == "DT_ClothesOutfit")
+                    AssetInjector.FillEmptySexMeshSlots(asset);
                 if (mappings != null) asset.Mappings = mappings;
                 asset.Write(Path.Combine(outDir, $"{dtName}.uasset"));
             }

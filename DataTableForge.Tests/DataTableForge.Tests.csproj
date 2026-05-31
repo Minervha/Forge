@@ -24,6 +24,9 @@
          test assembly; ForgeConfig is dragged in as a dependency. -->
     <Compile Include="..\ModDirResolver.cs" Link="src\ModDirResolver.cs" />
     <Compile Include="..\ForgeConfig.cs" Link="src\ForgeConfig.cs" />
+    <!-- AssetInjector links in for the sex-mesh-fill helper tests; its ModData /
+         SlotData / Logger deps are already linked above. -->
+    <Compile Include="..\AssetInjector.cs" Link="src\AssetInjector.cs" />
   </ItemGroup>
 
   <ItemGroup>

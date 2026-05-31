@@ -20,7 +20,7 @@ public static class AssetInjector
     /// Returns null if AutoMod_P is missing (caller falls back to v1 TemplateInjector).
     /// </summary>
     public static Dictionary<string, UAsset>? InjectAll(
-        string buildDir, string usmapPath, ModData[] mods, string[] characters)
+        string buildDir, string usmapPath, ModData[] mods, string[] characters, bool fillEmptySexSlots)
     {
         var autoModBase = Path.Combine(buildDir, "AutoMod_P");
         if (!Directory.Exists(autoModBase)) return null;
@@ -38,6 +38,7 @@ public static class AssetInjector
             var addMods = mods.Where(m => m.Variant == ModVariant.Add).ToArray();
             var asset = new UAsset(clothesPath, EngineVersion.VER_UE5_4, mappings);
             InjectClothesOutfit(asset, addMods);
+            if (fillEmptySexSlots) FillEmptySexMeshSlots(asset);
             result["DT_ClothesOutfit"] = asset;
         }
 
@@ -197,6 +198,64 @@ public static class AssetInjector
             }
         }
     }
+
+    /// <summary>
+    /// Fill empty sex-mesh slots on every BASE row: where Meshes[0] is set and
+    /// Meshes[1] (the sex mesh) is empty, copy [0] → [1]. Meshes only — no furmask.
+    /// Runs unconditionally on the loaded base asset (independent of add-mods).
+    /// </summary>
+    internal static void FillEmptySexMeshSlots(UAsset asset)
+    {
+        var dtExport = asset.Exports[0] as DataTableExport;
+        if (dtExport == null) return;
+
+        foreach (var row in dtExport.Table.Data)
+        {
+            foreach (var slotName in SlotNames)
+            {
+                var slotStruct = Find<StructPropertyData>(row, slotName);
+                if (slotStruct == null) continue;
+
+                var meshes = Find<ArrayPropertyData>(slotStruct, "Meshes");
+                if (meshes?.Value == null || meshes.Value.Length < 2) continue;
+
+                var regular = meshes.Value[0] as SoftObjectPropertyData;
+                var sex = meshes.Value[1] as SoftObjectPropertyData;
+                if (regular == null || sex == null) continue;
+
+                // Copy regular → sex only when regular is set and sex is empty.
+                // The FNames are already referenced by [0], so no AddNameReference.
+                if (ShouldFillSexSlot(regular, sex, out var packagePath, out var assetName))
+                    SetSoftObject(asset, sex, packagePath, assetName);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Decide whether the sex mesh (<paramref name="sex"/>) should be filled from the
+    /// regular mesh (<paramref name="regular"/>): true only when regular is set and sex
+    /// is empty. On true, outputs regular's package + asset name strings to copy across.
+    /// Never overwrites a set sex mesh; never fabricates when regular is also empty.
+    /// </summary>
+    internal static bool ShouldFillSexSlot(
+        SoftObjectPropertyData regular, SoftObjectPropertyData sex,
+        out string packagePath, out string assetName)
+    {
+        packagePath = ReadPackageName(regular);
+        assetName = ReadAssetName(regular);
+
+        bool regularSet = packagePath != "None" && !string.IsNullOrEmpty(packagePath);
+        var sexPackage = ReadPackageName(sex);
+        bool sexEmpty = sexPackage == "None" || string.IsNullOrEmpty(sexPackage);
+
+        return regularSet && sexEmpty;
+    }
+
+    static string ReadPackageName(SoftObjectPropertyData prop)
+        => prop.Value.AssetPath.PackageName?.Value?.Value ?? "None";
+
+    static string ReadAssetName(SoftObjectPropertyData prop)
+        => prop.Value.AssetPath.AssetName?.Value?.Value ?? "None";
 
     // ── DT_GameCharacterOutfits ─────────────────────────────────────────────
 
