@@ -156,8 +156,15 @@ This unpacks the game's `.pak`, reads all DataTables, and produces the JSON temp
 
 ```bash
 dotnet build
+
+# Windows (framework-dependent) — packaged into Minervha Studio. See publish.ps1.
 dotnet publish -c Release -r win-x64 --self-contained false -o ./publish/
+
+# Linux (self-contained) — standalone VM, needs no .NET runtime. See publish-linux.ps1.
+dotnet publish -c Release -r linux-x64 --self-contained true -o ./publish-linux/
 ```
+
+On Linux the produced binary is `DataTableForge` (no extension); `repakExe` in the config must point to the Linux `repak` build (also no `.exe`). See [docs/plans/features/forge-linux/linux-setup.md](docs/plans/features/forge-linux/linux-setup.md).
 
 ## License
 
