@@ -27,7 +27,7 @@ public static class AssetInjector
 
         Usmap? mappings = null;
         if (File.Exists(usmapPath))
-            mappings = new Usmap(usmapPath);
+            mappings = SafeLoad.Usmap(usmapPath);
 
         var result = new Dictionary<string, UAsset>();
 
@@ -36,7 +36,7 @@ public static class AssetInjector
         if (File.Exists(clothesPath))
         {
             var addMods = mods.Where(m => m.Variant == ModVariant.Add).ToArray();
-            var asset = new UAsset(clothesPath, EngineVersion.VER_UE5_4, mappings);
+            var asset = SafeLoad.UAsset(clothesPath, EngineVersion.VER_UE5_4, mappings);
             InjectClothesOutfit(asset, addMods);
             if (fillEmptySexSlots) FillEmptySexMeshSlots(asset);
             result["DT_ClothesOutfit"] = asset;
@@ -47,7 +47,7 @@ public static class AssetInjector
         if (File.Exists(outfitsPath))
         {
             var outfitMods = mods.Where(m => m.Variant == ModVariant.Add || m.Variant == ModVariant.Port).ToArray();
-            var asset = new UAsset(outfitsPath, EngineVersion.VER_UE5_4, mappings);
+            var asset = SafeLoad.UAsset(outfitsPath, EngineVersion.VER_UE5_4, mappings);
             InjectGameCharacterOutfits(asset, outfitMods, characters);
             result["DT_GameCharacterOutfits"] = asset;
         }
@@ -61,7 +61,7 @@ public static class AssetInjector
                 ? File.ReadAllLines(custCharFile).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray()
                 : [];
             var custMods = mods.Where(m => m.Variant == ModVariant.CharacterCustomization).ToArray();
-            var asset = new UAsset(custPath, EngineVersion.VER_UE5_4, mappings);
+            var asset = SafeLoad.UAsset(custPath, EngineVersion.VER_UE5_4, mappings);
             InjectGameCharacterCustomization(asset, custMods, custChars);
             result["DT_GameCharacterCustomization"] = asset;
         }
@@ -71,7 +71,7 @@ public static class AssetInjector
         if (File.Exists(tattooPath))
         {
             var tattooMods = mods.Where(m => m.Variant == ModVariant.Tattoo).ToArray();
-            var asset = new UAsset(tattooPath, EngineVersion.VER_UE5_4, mappings);
+            var asset = SafeLoad.UAsset(tattooPath, EngineVersion.VER_UE5_4, mappings);
             InjectTattoo(asset, tattooMods);
             result["DT_Tattoo"] = asset;
         }

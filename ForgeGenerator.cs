@@ -201,7 +201,7 @@ public static class ForgeGenerator
         Usmap? mappings = null;
         if (File.Exists(config.UsmapPath))
         {
-            mappings = new Usmap(config.UsmapPath);
+            mappings = SafeLoad.Usmap(config.UsmapPath);
             Console.WriteLine($"  Loaded mappings: {config.UsmapPath}");
         }
         else

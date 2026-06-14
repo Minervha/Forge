@@ -35,7 +35,7 @@ public static class BuildPreparer
             return 1;
         }
 
-        Usmap? mappings = File.Exists(usmapPath) ? new Usmap(usmapPath) : null;
+        Usmap? mappings = File.Exists(usmapPath) ? SafeLoad.Usmap(usmapPath) : null;
         if (mappings == null)
             Console.Error.WriteLine($"  WARNING: usmap not found: {usmapPath}");
 

@@ -29,6 +29,8 @@
     <Compile Include="..\AssetInjector.cs" Link="src\AssetInjector.cs" />
     <!-- BuildPreparer: AutoMod_P path-mapping tests (UAssetAPI dep already referenced). -->
     <Compile Include="..\BuildPreparer.cs" Link="src\BuildPreparer.cs" />
+    <!-- SafeLoad: dependency of AssetInjector/BuildPreparer (concurrency-safe loaders). -->
+    <Compile Include="..\SafeLoad.cs" Link="src\SafeLoad.cs" />
   </ItemGroup>
 
   <ItemGroup>
