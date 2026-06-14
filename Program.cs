@@ -45,6 +45,27 @@ if (args.Length > 0 && args[0] == "generate")
     return ForgeGenerator.Generate(forgeConfig);
 }
 
+// ── prepare-build: materialise AutoMod_P base assets from *_Debug.json ────────
+// One-time per build version; flips `generate` onto the fast v2 injector. See BuildPreparer.
+if (args.Length > 0 && args[0] == "prepare-build")
+{
+    string? Cli(string name)
+    {
+        var idx = Array.IndexOf(args, $"--{name}");
+        return idx >= 0 && idx + 1 < args.Length ? args[idx + 1] : null;
+    }
+
+    var buildDir = Cli("buildDir");
+    var usmap = Cli("usmapPath");
+    if (buildDir == null || usmap == null)
+    {
+        Console.Error.WriteLine("Usage: DataTableForge prepare-build --buildDir <dir> --usmapPath <usmap>");
+        return 1;
+    }
+
+    return BuildPreparer.Prepare(buildDir, usmap);
+}
+
 // ── Extraction mode (original behavior) ──────────────────────────────────────
 // ── CLI args or config file ───────────────────────────────────────────────────
 string pakPath, usmapPath, outputDir, repakExe;

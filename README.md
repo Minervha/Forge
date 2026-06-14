@@ -142,6 +142,26 @@ Eyes: /Game/Path/To/Eyes/Package, EyesAssetName
 
 Targets: `Hair`, `Beard`, `Skin`, `PubicHair`, `Eyes`, `EyeLiner`, `EyeShadow`, `Lipstick`, `Tanlines`. Hair entries have 4 values (path, name, physics_path, physics_name). All others have 2 (path, name).
 
+## prepare-build (enable the fast v2 path)
+
+```bash
+DataTableForge prepare-build --buildDir <build-folder> --usmapPath <build.usmap>
+```
+
+Materialises the `AutoMod_P/` base `.uasset` files from a build's `*_Debug.json`
+exports. Their presence makes `generate` use the fast **v2** binary injector
+(`AssetInjector`, parallelised) instead of the **v1** JSON fallback — measured
+~12.5s → ~2.8s per job on a single-mod build.
+
+Run it **once per build version** (the output is permanent — base DataTables
+never change for a given version). Produces the 4 injectable tables only
+(DT_ClothesOutfit, DT_GameCharacterOutfits, DT_GameCharacterCustomization,
+DT_Tattoo); GFur/SandboxProps are passthrough and intentionally excluded. To
+roll back to v1, delete the build's `AutoMod_P/` folder.
+
+This is the JSON-only equivalent of [Extraction](#extraction): use it when you
+have the extracted DataTable JSON but not the original game `.pak`.
+
 ## Extraction
 
 To extract base DataTables from a game build:

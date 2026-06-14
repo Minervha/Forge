@@ -27,6 +27,8 @@
     <!-- AssetInjector links in for the sex-mesh-fill helper tests; its ModData /
          SlotData / Logger deps are already linked above. -->
     <Compile Include="..\AssetInjector.cs" Link="src\AssetInjector.cs" />
+    <!-- BuildPreparer: AutoMod_P path-mapping tests (UAssetAPI dep already referenced). -->
+    <Compile Include="..\BuildPreparer.cs" Link="src\BuildPreparer.cs" />
   </ItemGroup>
 
   <ItemGroup>
