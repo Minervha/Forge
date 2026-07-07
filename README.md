@@ -1,6 +1,6 @@
 # DataTableForge
 
-CLI tool that generates Unreal Engine 5 `.pak` files for [WildLife](https://store.steampowered.com/app/1927950/Wild_Life/) modding. Parses mod definition `.txt` files, injects data into UE5 DataTables, and packs everything into a game-ready `.pak`.
+CLI tool that generates Unreal Engine 5 `.pak` files for [WildLife](https://www.patreon.com/c/adeptussteve/posts?vanity=adeptussteve) modding. Parses mod definition `.txt` files, injects data into UE5 DataTables, and packs everything into a game-ready `.pak`.
 
 ## Prerequisites
 
