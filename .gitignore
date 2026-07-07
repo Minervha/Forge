@@ -2,8 +2,13 @@ bin/
 obj/
 publish/
 publish-linux/
+publish_out/
 *.pak
 *.user
 .vs/
+.claude/
 Output/
 Exports/
+
+# Local dev diagnostics (hardcoded machine paths)
+DiagVT.csx

@@ -1,8 +1,19 @@
 #!/usr/bin/env pwsh
-# Build DataTableForge and copy to Minervha Studio
+# Build DataTableForge and copy it into a Minervha Studio install.
+#
+# Provide the target bin folder via -StudioBin or the MINERVHA_STUDIO_BIN
+# environment variable, e.g.:
+#   $env:MINERVHA_STUDIO_BIN = "C:\path\to\Minervha Studio\resources\forge\DataTableExtractor_bin"
+param(
+    [string]$StudioBin = $env:MINERVHA_STUDIO_BIN
+)
 
 $ErrorActionPreference = "Stop"
-$StudioBin = "F:\Minervha\Studio\Minervha Studio\resources\forge\DataTableExtractor_bin"
+
+if (-not $StudioBin) {
+    Write-Host "Set -StudioBin or the MINERVHA_STUDIO_BIN environment variable to the Studio forge bin folder." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "Building DataTableForge..." -ForegroundColor Cyan
 
