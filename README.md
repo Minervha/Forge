@@ -14,6 +14,9 @@ CLI tool that generates Unreal Engine 5 `.pak` files for [WildLife](https://www.
 DataTableForge.exe generate --config forge.config.json
 ```
 
+Any config field can be overridden on the command line — `--<key> <value>` takes
+precedence over the file (e.g. `--pakName MyMods --mods modA,modB`).
+
 ### forge.config.json
 
 ```json
@@ -26,6 +29,7 @@ DataTableForge.exe generate --config forge.config.json
   "pakName": "MyMods",
   "userId": "your-id",
   "mods": ["mod_folder_1", "mod_folder_2"],
+  "fillEmptySexSlots": false,
   "modSources": {
     "mod_folder_2": "path/to/overlay/for/mod_folder_2"
   }
@@ -42,6 +46,7 @@ DataTableForge.exe generate --config forge.config.json
 | `pakName` | Output pak name (produces `{pakName}_P.pak`) |
 | `userId` | User identifier (used for staging subfolder) |
 | `mods` | Array of mod ids — each must resolve to a directory either via `modSources[id]` or `modsDir/id` |
+| `fillEmptySexSlots` | *Optional, default `false`.* When `true`, empty sex-mesh slots on every **base** `DT_ClothesOutfit` row are filled by copying the regular mesh. Legacy configs without the key stay off. |
 | `modSources` | *Optional.* Per-mod content directory override. Lets callers point most mods straight at a shared cache while keeping a separate overlay dir for the few that need pre-processing (e.g. asset filtering). Omitted entries fall back to `modsDir/<modId>`. |
 
 ### Mod folder structure
@@ -68,19 +73,22 @@ mod_folder/
 [5/5] Pack .pak          →  repak pack
 ```
 
-### DataTables modified
+### DataTables
 
-| DataTable | Purpose | Mod types |
-|-----------|---------|-----------|
-| DT_ClothesOutfit | Outfit definitions (meshes, physics, icons) | Add |
-| DT_GameCharacterOutfits | Which characters can wear which outfits | Add, Port |
-| DT_GameCharacterCustomization | Character customization options (hair, skin, eyes) | CharacterCustomization |
-| DT_GFur | Fur rendering settings | (passthrough) |
-| DT_SandboxProps | Sandbox props | (passthrough) |
+Four tables are **injected** (rows added by mods); two are **passthrough** (copied unchanged so mods can ship their own assets against them).
+
+| DataTable | Purpose | Mode |
+|-----------|---------|------|
+| DT_ClothesOutfit | Outfit definitions (meshes, physics, icons) | injected — Add |
+| DT_GameCharacterOutfits | Which characters can wear which outfits | injected — Add, Port |
+| DT_GameCharacterCustomization | Character customization options (hair, skin, eyes) | injected — Character Customization |
+| DT_Tattoo | Tattoo definitions (texture, icon, color, cost) | injected — Tattoo |
+| DT_GFur | Fur rendering settings | passthrough |
+| DT_SandboxProps | Sandbox props | passthrough |
 
 ## Mod .txt format
 
-Three variants are supported:
+Four variants are supported, selected by the `Variant:` line (defaults to `Add` when absent).
 
 ### Add (default)
 
@@ -111,7 +119,7 @@ NameMap: /Game/Path/To/Asset1, /Game/Path/To/Asset2
 ...
 ```
 
-Slots: `HEAD`, `CHEST`, `HANDS`, `LEGS`, `FEET`. Each slot has: `MESH_PATH`, `MESH_NAME`, `SEX_MESH_PATH`, `SEX_MESH_NAME`, `ICON_PATH`, `ICON_NAME`, `PHYSICSAREAS`, `FLEXREGIONS`, `MORPHTARGETVALUE`, `MORPHTARGET`, `CONSTRAINTPROFILE`, `AROUSALBLEND`, `FURMASK_PATH`, `FURMASK_NAME`, `SEX_FURMASK_PATH`, `SEX_FURMASK_NAME`.
+Slots: `HEAD`, `CHEST`, `HANDS`, `LEGS`, `FEET`. Each slot has: `MESH_PATH`, `MESH_NAME`, `SEX_MESH_PATH`, `SEX_MESH_NAME`, `ICON_PATH`, `ICON_NAME`, `PHYSICSAREAS`, `FLEXREGIONS`, `MORPHTARGETVALUE`, `MORPHTARGET`, `CONSTRAINTPROFILE`, `AROUSALBLEND`, `FURMASK_PATH`, `FURMASK_NAME`, `SEX_FURMASK_PATH`, `SEX_FURMASK_NAME`. Missing path/name fields default to `None`.
 
 ### Port
 
@@ -141,6 +149,36 @@ Eyes: /Game/Path/To/Eyes/Package, EyesAssetName
 ```
 
 Targets: `Hair`, `Beard`, `Skin`, `PubicHair`, `Eyes`, `EyeLiner`, `EyeShadow`, `Lipstick`, `Tanlines`. Hair entries have 4 values (path, name, physics_path, physics_name). All others have 2 (path, name).
+
+### Tattoo
+
+Adds a tattoo to the global `DT_Tattoo` table. Tattoos are character-agnostic — there is no `Character:` field.
+
+```
+Variant: Tattoo
+ModName: MyTattoo
+Author: YourName
+NameMap: /Game/Path/To/Texture
+[TATTOO_ID]: MyTattoo
+[TATTOO_DISPLAY_NAME]: My Tattoo
+[TATTOO_TEXTURE_PATH]: /Game/Textures/Tattoos/MyTattoo
+[TATTOO_TEXTURE_NAME]: MyTattoo
+[TATTOO_ICON_PATH]: /Game/Textures/Icons/MyTattoo_icon
+[TATTOO_ICON_NAME]: MyTattoo_icon
+[TATTOO_COLOR_R]: 0
+[TATTOO_COLOR_G]: 0
+[TATTOO_COLOR_B]: 0
+[TATTOO_COLOR_A]: 1.0
+[TATTOO_COVERED_SLOTS]: 0
+[TATTOO_COST]: 100
+[TATTOO_UV_SET]: Set1
+[TATTOO_TRADER_TYPE]: None
+```
+
+`[TATTOO_ID]` is required (entries with an empty id are skipped). Optional fields
+default as follows: icon path/name fall back to the texture path/name, `COST` to
+`100`, `UV_SET` to `Set1`, `TRADER_TYPE` to `None`, `COLOR_A` to `1.0`, and the
+remaining colors/`COVERED_SLOTS` to `0`.
 
 ## prepare-build (enable the fast v2 path)
 
