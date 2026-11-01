@@ -122,4 +122,86 @@ public class ModValidatorTests {
 
         Assert.DoesNotContain(errors, e => e.Contains("ClothingId"));
     }
+
+    [Fact]
+    public void CompleteNameMap_adds_the_clothing_id_and_set_slot_values_of_an_Add_mod() {
+        var mod = NewAddMod();
+        mod.Slots["CHEST"] = new SlotData { MeshPath = "/Game/X/SK_X", MeshName = "SK_X", MorphTarget = "Morph_X" };
+
+        ModValidator.CompleteNameMap(mod);
+
+        Assert.Contains("Test_001", mod.NameMapEntries);
+        Assert.Contains("/Game/X/SK_X", mod.NameMapEntries);
+        Assert.Contains("SK_X", mod.NameMapEntries);
+        Assert.Contains("Morph_X", mod.NameMapEntries);
+    }
+
+    [Fact]
+    public void CompleteNameMap_skips_unset_values_and_keeps_existing_entries_once() {
+        var mod = NewAddMod();
+        mod.NameMapEntries = new[] { "Test_001", "Foo" };
+        mod.Slots["HEAD"] = new SlotData();
+
+        ModValidator.CompleteNameMap(mod);
+
+        Assert.Equal(new[] { "Test_001", "Foo" }, mod.NameMapEntries);
+    }
+
+    [Fact]
+    public void CompleteNameMap_covers_customization_and_tattoo_entries() {
+        var cust = new ModData { Variant = ModVariant.CharacterCustomization };
+        cust.CustEntries.Add(new CustEntry { Target = "Hair", Path = "/Game/H", Name = "H", PhysicsPath = "/Game/P", PhysicsName = "P" });
+        var tattoo = new ModData { Variant = ModVariant.Tattoo };
+        tattoo.TattooEntries.Add(new TattooData { TattooId = "T1", TexturePath = "/Game/T", TextureName = "T", IconPath = "/Game/I", IconName = "I" });
+
+        ModValidator.CompleteNameMap(cust);
+        ModValidator.CompleteNameMap(tattoo);
+
+        Assert.Equal(new[] { "/Game/H", "H", "/Game/P", "P" }, cust.NameMapEntries);
+        Assert.Equal(new[] { "T1", "/Game/T", "T", "/Game/I", "I" }, tattoo.NameMapEntries);
+    }
+
+    [Fact]
+    public void FindCharacterWarning_flags_an_outfit_for_an_unknown_character() {
+        var mod = NewAddMod();
+        mod.Character = "Nobody";
+        Assert.Contains("Nobody", ModValidator.FindCharacterWarning(mod, new[] { "Maya" }));
+    }
+
+    [Fact]
+    public void FindCharacterWarning_accepts_a_known_character_in_any_case() {
+        var mod = NewAddMod();
+        mod.Character = "maya";
+        Assert.Null(ModValidator.FindCharacterWarning(mod, new[] { "Maya" }));
+    }
+
+    [Fact]
+    public void FindCharacterWarning_ignores_variants_not_tied_to_a_character_list() {
+        var mod = new ModData { Variant = ModVariant.Tattoo, Character = "" };
+        Assert.Null(ModValidator.FindCharacterWarning(mod, new[] { "Maya" }));
+    }
+
+    [Fact]
+    public void FindCharacterWarning_stays_silent_without_a_character_list() {
+        var mod = NewAddMod();
+        mod.Character = "Nobody";
+        Assert.Null(ModValidator.FindCharacterWarning(mod, System.Array.Empty<string>()));
+    }
+
+    [Fact]
+    public void FindSuspects_returns_the_mods_owning_the_name_quoted_in_the_error() {
+        var good = NewAddMod();
+        var bad = NewAddMod();
+        bad.ModId = "mod_bad";
+        bad.ClothingId = "Bad_Outfit";
+
+        var suspects = ModValidator.FindSuspects("Attempt to serialize dummy FName 'Bad_Outfit' - never added", new[] { good, bad });
+
+        Assert.Equal(new[] { "mod_bad" }, suspects);
+    }
+
+    [Fact]
+    public void FindSuspects_is_empty_when_the_error_names_nothing_owned_by_a_mod() {
+        Assert.Empty(ModValidator.FindSuspects("usmap: File signature mismatch", new[] { NewAddMod() }));
+    }
 }

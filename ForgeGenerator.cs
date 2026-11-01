@@ -24,6 +24,12 @@ public static class ForgeGenerator
         ["DT_Tattoo"] = "WildLifeC/Content/DataTables",
     };
 
+    // Without these the pak would load but every modded outfit would be missing from the game.
+    static readonly string[] CoreTables = ["DT_ClothesOutfit", "DT_GameCharacterOutfits", "DT_GameCharacterCustomization"];
+
+    /// <summary>Mods parsed by the current run, so a fatal error can be attributed.</summary>
+    public static IReadOnlyList<ModData> ParsedMods { get; private set; } = [];
+
     /// <summary>Emit a structured progress line for the Electron UI to parse.</summary>
     static void EmitProgress(int percent, string message)
     {
@@ -52,6 +58,8 @@ public static class ForgeGenerator
 
         // 1. Parse all mod .txt files
         var mods = new List<ModData>();
+        var assetOnlyModIds = new HashSet<string>();
+        ParsedMods = mods;
         foreach (var modId in config.Mods)
         {
             var modDir = ModDirResolver.Resolve(config, modId);
@@ -64,10 +72,23 @@ public static class ForgeGenerator
             // their rule files under AutoMod/ instead of the mod root. Studio
             // used to flatten them into a single dir during its staging copy;
             // now that we read straight from ModCache, the scan has to do it.
-            var ruleFiles = Directory.GetFiles(modDir, "*.txt").ToList();
-            var autoModDir = Path.Combine(modDir, "AutoMod");
-            if (Directory.Exists(autoModDir))
-                ruleFiles.AddRange(Directory.GetFiles(autoModDir, "*.txt"));
+            var ruleFiles = ModDirResolver.ListRuleFiles(modDir);
+            if (ruleFiles.Count == 0)
+            {
+                // No rules means no new table entry: the files can only overwrite game
+                // assets of the same path. Valid, but the user must be told about it.
+                var assetFiles = ModDirResolver.CountAssetFiles(modDir);
+                if (assetFiles > 0)
+                {
+                    assetOnlyModIds.Add(modId);
+                    Logger.EmitEvent("asset-only-mod", new { modId, assetFiles });
+                }
+                else
+                {
+                    Logger.EmitModError(modId, null, "No rule file and no game file: nothing to add to the pak");
+                }
+                continue;
+            }
             foreach (var txt in ruleFiles)
             {
                 try
@@ -100,6 +121,7 @@ public static class ForgeGenerator
             }
             if (dropped > 0)
                 Console.WriteLine($"  {dropped} mod(s) failed validation and were skipped.");
+            foreach (var mod in mods) ModValidator.CompleteNameMap(mod);
         }
 
         // Deduplicate Add mods by ClothingId — last-wins (mirrors file-level conflict resolution).
@@ -115,6 +137,7 @@ public static class ForgeGenerator
                 if (!seen.TryAdd(mods[i].ClothingId, i))
                 {
                     Console.WriteLine($"  DEDUP: dropping duplicate ClothingId '{mods[i].ClothingId}' from {mods[i].ModName}");
+                    Logger.EmitModWarning(mods[i].ModId, mods[i], $"Another mod defines the same outfit id '{mods[i].ClothingId}': this one was ignored");
                     mods.RemoveAt(i);
                 }
             }
@@ -167,6 +190,11 @@ public static class ForgeGenerator
 
         // 2. Read character lists
         var characters = ReadLines(Path.Combine(config.BuildDir, "Characters.txt"));
+        foreach (var mod in mods)
+        {
+            if (ModValidator.FindCharacterWarning(mod, characters) is string warning)
+                Logger.EmitModWarning(mod.ModId, mod, warning);
+        }
 
         // 3. Inject — try v2 (direct UAsset manipulation) first, v1 (JSON) as fallback
         EmitProgress(20, "Injecting mods...");
@@ -324,6 +352,17 @@ public static class ForgeGenerator
         {
             foreach (var err in writeErrors)
                 Console.Error.WriteLine($"  ERROR: {err}");
+            Logger.EmitFatal($"Could not write the game tables: {writeErrors.First()}", ModValidator.FindSuspects(string.Join(" ", writeErrors), mods));
+            Logger.EmitSummary(originalModCount, pakOk: false);
+            return 1;
+        }
+
+        var missingTables = CoreTables
+            .Where(dt => !File.Exists(Path.Combine(stagingDir, DtPaths[dt], $"{dt}.uasset")))
+            .ToList();
+        if (missingTables.Count > 0)
+        {
+            Logger.EmitFatal($"The DataTables of this game version are incomplete (missing {string.Join(", ", missingTables)})");
             Logger.EmitSummary(originalModCount, pakOk: false);
             return 1;
         }
@@ -337,7 +376,7 @@ public static class ForgeGenerator
         //    its asset tree, even if its other shapes (DataTable injections) were skipped.
         EmitProgress(80, "Copying mod assets...");
         Console.WriteLine("[4/5] Copying mod assets...");
-        var keptModIds = new HashSet<string>(mods.Select(m => m.ModId));
+        var keptModIds = new HashSet<string>(mods.Select(m => m.ModId).Concat(assetOnlyModIds));
         foreach (var modId in config.Mods)
         {
             if (!keptModIds.Contains(modId)) continue;  // dropped at validation, skip its assets too
@@ -375,6 +414,7 @@ public static class ForgeGenerator
         if (proc.ExitCode != 0)
         {
             Console.Error.WriteLine($"repak failed (exit {proc.ExitCode}):\n{stderr}\n{stdout}");
+            Logger.EmitFatal($"repak could not build the pak (exit {proc.ExitCode})");
             Logger.EmitSummary(originalModCount, pakOk: false);
             return 1;
         }

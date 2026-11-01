@@ -79,4 +79,63 @@ public static class ModValidator {
 
         return errors;
     }
+
+    /// <summary>
+    /// Adds every name the injectors will reference to the mod's NameMap. A value missing
+    /// from the NameMap makes UAssetAPI abort the whole table on write, which takes every
+    /// other mod down with it, so an incomplete NameMap is repaired rather than rejected.
+    /// </summary>
+    public static void CompleteNameMap(ModData mod) {
+        var names = new List<string>(mod.NameMapEntries ?? []);
+        void Add(string? value) {
+            if (string.IsNullOrWhiteSpace(value) || value == "None" || value == "null") return;
+            if (!names.Contains(value)) names.Add(value);
+        }
+
+        if (mod.Variant is ModVariant.Add or ModVariant.Port) Add(mod.ClothingId);
+        foreach (var slot in mod.Slots.Values) {
+            Add(slot.MeshPath); Add(slot.MeshName);
+            Add(slot.SexMeshPath); Add(slot.SexMeshName);
+            Add(slot.IconPath); Add(slot.IconName);
+            Add(slot.MorphTarget); Add(slot.ConstraintProfile);
+            Add(slot.FurMaskPath); Add(slot.FurMaskName);
+            Add(slot.SexFurMaskPath); Add(slot.SexFurMaskName);
+        }
+        foreach (var entry in mod.CustEntries) {
+            Add(entry.Path); Add(entry.Name);
+            Add(entry.PhysicsPath); Add(entry.PhysicsName);
+        }
+        foreach (var tattoo in mod.TattooEntries) {
+            Add(tattoo.TattooId);
+            Add(tattoo.TexturePath); Add(tattoo.TextureName);
+            Add(tattoo.IconPath); Add(tattoo.IconName);
+        }
+        mod.NameMapEntries = names.ToArray();
+    }
+
+    /// <summary>
+    /// Warning for an outfit attached to a character this build does not know: the game
+    /// would never offer it. Null when fine, or when the build has no character list.
+    /// </summary>
+    public static string? FindCharacterWarning(ModData mod, string[] characters) {
+        if (mod.Variant is not (ModVariant.Add or ModVariant.Port)) return null;
+        if (characters.Length == 0) return null;
+        if (characters.Contains(mod.Character, System.StringComparer.OrdinalIgnoreCase)) return null;
+        return string.IsNullOrWhiteSpace(mod.Character)
+            ? "No character set: this outfit will not appear in the game"
+            : $"Unknown character '{mod.Character}' in this game version: this outfit will not appear in the game";
+    }
+
+    /// <summary>Mods owning a name quoted in a fatal error message, to attribute the failure.</summary>
+    public static List<string> FindSuspects(string message, IEnumerable<ModData> mods) {
+        var quoted = System.Text.RegularExpressions.Regex.Matches(message, "'([^']+)'")
+            .Select(m => m.Groups[1].Value).ToHashSet();
+        return mods
+            .Where(m => quoted.Contains(m.ClothingId)
+                || m.TattooEntries.Any(t => quoted.Contains(t.TattooId))
+                || m.NameMapEntries.Any(quoted.Contains))
+            .Select(m => m.ModId)
+            .Distinct()
+            .ToList();
+    }
 }

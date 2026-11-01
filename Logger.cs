@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using Newtonsoft.Json;
 
@@ -28,6 +29,16 @@ public static class Logger {
             variant = mod?.Variant.ToString() ?? "Unknown",
             reason
         });
+    }
+
+    /// <summary>Non-blocking problem on a mod that stays enabled: reported, never counted as a failure.</summary>
+    public static void EmitModWarning(string modId, ModData? mod, string reason) {
+        EmitEvent("mod-warning", new { modId, modName = mod?.ModName ?? modId, reason });
+    }
+
+    /// <summary>The whole run is failing. suspectModIds is empty unless a mod is really designated.</summary>
+    public static void EmitFatal(string message, IEnumerable<string>? suspectModIds = null) {
+        EmitEvent("forge-fatal", new { message, suspectModIds = suspectModIds ?? [] });
     }
 
     public static void EmitSummary(int totalMods, bool pakOk) {

@@ -63,6 +63,22 @@ mod_folder/
 │       └── ...
 ```
 
+A folder with game files under `WildLifeC/` but no `.txt` is valid: it adds no table entry, so its files
+can only overwrite game assets found at the same paths. It goes into the pak and the forge emits an
+`asset-only-mod` event so the host can tell the user. A folder with neither is reported as a `mod-error`.
+
+### Events
+
+Besides `PROGRESS:<pct>:<msg>`, the forge writes `##FORGE_EVENT##{"stage":...,"payload":...}` lines to stdout, in UTF-8:
+
+| Stage | Meaning |
+|---|---|
+| `mod-error` | The mod was skipped; the rest of the pak is fine |
+| `mod-warning` | The mod is kept but may not behave as expected (duplicate outfit id, unknown character) |
+| `asset-only-mod` | The mod has no rule file and most likely replaces game content |
+| `forge-fatal` | The run fails. `suspectModIds` is empty unless a mod is really designated |
+| `summary` | End of run counters |
+
 ## Pipeline
 
 ```
