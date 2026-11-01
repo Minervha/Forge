@@ -17,9 +17,9 @@
     <Authors>Minervha Studio</Authors>
     <Description>Reads and writes Unreal Engine DataTable (.uasset) files for Minervha Studio. Local tool, no network activity.</Description>
     <Copyright>Copyright (c) Minervha Studio</Copyright>
-    <Version>0.4.2</Version>
-    <FileVersion>0.4.2.0</FileVersion>
-    <AssemblyVersion>0.4.2.0</AssemblyVersion>
+    <Version>0.5.0</Version>
+    <FileVersion>0.5.0.0</FileVersion>
+    <AssemblyVersion>0.5.0.0</AssemblyVersion>
     <NeutralLanguage>en-US</NeutralLanguage>
 
     <!-- Reproducible / deterministic builds.
