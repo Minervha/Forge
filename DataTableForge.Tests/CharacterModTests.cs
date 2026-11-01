@@ -212,6 +212,17 @@ public class CharacterModTests
     }
 
     [Fact]
+    public void New_character_is_listed_even_when_its_template_is_hidden()
+    {
+        if (GameData() is not var (build, usmap)) return;
+        var mods = new List<ModData> { Character("AlissaPlus", "Alissa", profile: "Alissa") };
+        var tables = CharacterInjector.Inject(build, usmap, mods);
+        var npc = Row(tables["DT_NPCData_Sandbox"], "AlissaPlus");
+        Assert.Equal(0, npc.Value.OfType<IntPropertyData>().First(p => p.Name.ToString() == "Options").Value);
+        Assert.Equal(1, Row(tables["DT_NPCData_Sandbox"], "RangerGuardSmall").Value.OfType<IntPropertyData>().First(p => p.Name.ToString() == "Options").Value);
+    }
+
+    [Fact]
     public void Outfit_source_accepts_a_list_name_without_a_static_row()
     {
         if (GameData() is not var (build, usmap)) return;

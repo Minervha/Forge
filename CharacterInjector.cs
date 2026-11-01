@@ -17,6 +17,9 @@ public static class CharacterInjector
     const string SandboxDt = "DT_NPCData_Sandbox";
     const string OutfitsDt = "DT_GameCharacterOutfits";
 
+    // ENPCOption bit that keeps a row out of the game's character lists (TestDummy, Grace, RangerGuardSmall…).
+    const int HiddenFromCharacterList = 1;
+
     /// <summary>DataTable → pak subfolder. Written only when a Character mod actually adds a row.</summary>
     public static readonly IReadOnlyDictionary<string, string> DtPaths = new Dictionary<string, string>
     {
@@ -210,6 +213,9 @@ public static class CharacterInjector
         SetRowHandleTarget(sandboxTable, newNpc, "StaticData", c.Id);
         if (!string.IsNullOrWhiteSpace(c.Profile))
             SetRowHandleTarget(sandboxTable, newNpc, "customizationProfile", c.Profile);
+
+        var options = AssetInjector.Find<IntPropertyData>(newNpc, "Options");
+        AssetInjector.SetInt(options, (options?.Value ?? 0) & ~HiddenFromCharacterList);
 
         // A fresh key: reusing the template's would show its translated name instead of this one.
         var displayName = AssetInjector.Find<TextPropertyData>(newNpc, "DisplayName")

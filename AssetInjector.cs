@@ -575,7 +575,7 @@ public static class AssetInjector
         }
     }
 
-    static void SetInt(IntPropertyData? prop, int value)
+    internal static void SetInt(IntPropertyData? prop, int value)
     {
         if (prop == null) return;
         prop.Value = value;
