@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -80,5 +81,47 @@ public class ModDirResolverTests
         };
         Assert.Equal("D:/overlay/filtered-mod", ModDirResolver.Resolve(cfg, "filtered-mod"));
         Assert.Equal(Path.Combine("C:/cache", "direct-mod"), ModDirResolver.Resolve(cfg, "direct-mod"));
+    }
+
+    static string TempModDir()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"forge-moddir-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
+    [Fact]
+    public void ListRuleFiles_reads_the_mod_root_and_AutoMod()
+    {
+        var dir = TempModDir();
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "a.txt"), "x");
+            Directory.CreateDirectory(Path.Combine(dir, "AutoMod"));
+            File.WriteAllText(Path.Combine(dir, "AutoMod", "b.txt"), "x");
+
+            var names = ModDirResolver.ListRuleFiles(dir).Select(Path.GetFileName).OrderBy(n => n);
+
+            Assert.Equal(new[] { "a.txt", "b.txt" }, names);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void CountAssetFiles_counts_files_under_WildLifeC_and_is_zero_without_it()
+    {
+        var dir = TempModDir();
+        try
+        {
+            Assert.Equal(0, ModDirResolver.CountAssetFiles(dir));
+
+            var deep = Path.Combine(dir, "WildLifeC", "Content", "X");
+            Directory.CreateDirectory(deep);
+            File.WriteAllText(Path.Combine(deep, "a.uasset"), "x");
+            File.WriteAllText(Path.Combine(deep, "a.uexp"), "x");
+
+            Assert.Equal(2, ModDirResolver.CountAssetFiles(dir));
+        }
+        finally { Directory.Delete(dir, true); }
     }
 }

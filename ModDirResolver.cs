@@ -34,4 +34,23 @@ public static class ModDirResolver
         }
         return Path.Combine(config.ModsDir, modId);
     }
+
+    /// <summary>Rule files of a mod: its root plus AutoMod/, where legacy wlmm imports keep them.</summary>
+    public static List<string> ListRuleFiles(string modDir)
+    {
+        var ruleFiles = Directory.GetFiles(modDir, "*.txt").ToList();
+        var autoModDir = Path.Combine(modDir, "AutoMod");
+        if (Directory.Exists(autoModDir))
+            ruleFiles.AddRange(Directory.GetFiles(autoModDir, "*.txt"));
+        return ruleFiles;
+    }
+
+    /// <summary>Number of game files the mod would add to the pak (everything under WildLifeC/).</summary>
+    public static int CountAssetFiles(string modDir)
+    {
+        var wildLife = Path.Combine(modDir, "WildLifeC");
+        return Directory.Exists(wildLife)
+            ? Directory.GetFiles(wildLife, "*", SearchOption.AllDirectories).Length
+            : 0;
+    }
 }

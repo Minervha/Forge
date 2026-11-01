@@ -7,6 +7,12 @@ using UAssetAPI;
 using UAssetAPI.UnrealTypes;
 using UAssetAPI.Unversioned;
 
+// Studio reads this output as UTF-8. The default is the OEM code page, which turns
+// accented mod names and paths into garbage in the error dialogs.
+var consoleUtf8 = new UTF8Encoding(false);
+Console.SetOut(new StreamWriter(Console.OpenStandardOutput(), consoleUtf8) { AutoFlush = true });
+Console.SetError(new StreamWriter(Console.OpenStandardError(), consoleUtf8) { AutoFlush = true });
+
 // ── Subcommand routing ───────────────────────────────────────────────────────
 if (args.Length > 0 && args[0] == "generate")
 {
@@ -42,7 +48,16 @@ if (args.Length > 0 && args[0] == "generate")
     if (CliArg("userId")    is string ui) forgeConfig.UserId     = ui;
     if (CliArg("mods")      is string ms) forgeConfig.Mods       = ms.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-    return ForgeGenerator.Generate(forgeConfig);
+    try
+    {
+        return ForgeGenerator.Generate(forgeConfig);
+    }
+    catch (Exception ex)
+    {
+        Logger.EmitFatal(ex.Message, ModValidator.FindSuspects(ex.Message, ForgeGenerator.ParsedMods));
+        Console.Error.WriteLine(ex);
+        return 1;
+    }
 }
 
 // ── prepare-build: materialise AutoMod_P base assets from *_Debug.json ────────
