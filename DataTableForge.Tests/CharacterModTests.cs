@@ -222,6 +222,38 @@ public class CharacterModTests
         Assert.Equal(1, Row(tables["DT_NPCData_Sandbox"], "RangerGuardSmall").Value.OfType<IntPropertyData>().First(p => p.Name.ToString() == "Options").Value);
     }
 
+    static int Default(UAsset table, string row, string slot)
+        => Row(table, row).Value.OfType<IntPropertyData>().First(p => p.Name.ToString() == $"Default{slot}OutfitSlotIndex").Value;
+
+    [Fact]
+    public void Default_outfits_come_from_the_base_not_the_template()
+    {
+        if (GameData() is not var (build, usmap)) return;
+        var c = Character("AlissaPlus", "Alissa", profile: "Alissa");
+        c.CharacterEntry!.NpcTemplate = "EmptyMaya"; // asks for outfit 63, Alissa has 17
+        var tables = CharacterInjector.Inject(build, usmap, new List<ModData> { c });
+        Assert.Equal(12, Default(tables["DT_NPCData_Sandbox"], "AlissaPlus", "Chest"));
+        Assert.Equal(63, Default(tables["DT_NPCData_Sandbox"], "EmptyMaya", "Chest"));
+    }
+
+    [Fact]
+    public void Default_outfits_follow_another_characters_list()
+    {
+        if (GameData() is not var (build, usmap)) return;
+        var tables = CharacterInjector.Inject(build, usmap, new List<ModData> { Character("ShMaya", "Shey", outfits: "Alissa") });
+        Assert.Equal(12, Default(tables["DT_NPCData_Sandbox"], "ShMaya", "Chest"));
+    }
+
+    [Fact]
+    public void Default_outfits_past_the_list_fall_back_on_the_first()
+    {
+        if (GameData() is not var (build, usmap)) return;
+        // SexBot has no row of its own: Shey's template values stay, and 73 is past its 41 outfits.
+        var tables = CharacterInjector.Inject(build, usmap, new List<ModData> { Character("ShBot", "Shey", outfits: "SexBot") });
+        Assert.Equal(0, Default(tables["DT_NPCData_Sandbox"], "ShBot", "Hands"));
+        Assert.Equal(40, Default(tables["DT_NPCData_Sandbox"], "ShBot", "Chest"));
+    }
+
     [Fact]
     public void Outfit_source_accepts_a_list_name_without_a_static_row()
     {

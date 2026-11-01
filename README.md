@@ -227,6 +227,8 @@ Author: YourName
 | `CHARACTER_PROFILE` | *Optional.* `customizationProfile` row. Defaults to the template's |
 | `CHARACTER_OUTFITS` | *Optional.* Use another character's outfit list instead of the base's. Meshes are not refitted |
 
+Default outfits come from the character owning the outfit list; an index past the list falls back on its first outfit.
+
 The mesh goes in the mod's `WildLifeC/` tree, cooked against the base's skeleton. An outfit mod with
 `Character: MyCharacter` adds to the list the character uses, which it may share with its base.
 

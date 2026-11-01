@@ -150,6 +150,7 @@ var dataTables = new (string pakEntry, string friendlyName)[]
     ("WildLifeC/Content/DataTables/DT_Tattoo",                         "DT_Tattoo"),
     ("WildLifeC/Content/DataTables/NPC/DT_NPCStaticData",               "DT_NPCStaticData"),
     ("WildLifeC/Content/DataTables/NPC/DT_NPCData_Sandbox",             "DT_NPCData_Sandbox"),
+    ("WildLifeC/Content/DataTables/NPC/CDT_NPCData",                    "CDT_NPCData"),
 };
 
 // Only these DTs need NameMap txt files (used by DataTableGenerator)

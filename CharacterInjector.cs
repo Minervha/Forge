@@ -16,6 +16,12 @@ public static class CharacterInjector
     const string StaticDt = "DT_NPCStaticData";
     const string SandboxDt = "DT_NPCData_Sandbox";
     const string OutfitsDt = "DT_GameCharacterOutfits";
+    const string CompositeDt = "CDT_NPCData";
+
+    static readonly string[] DefaultOutfitFields = [
+        "DefaultHeadOutfitSlotIndex", "DefaultChestOutfitSlotIndex", "DefaultHandsOutfitSlotIndex",
+        "DefaultLegsOutfitSlotIndex", "DefaultFeetOutfitSlotIndex",
+    ];
 
     // ENPCOption bit that keeps a row out of the game's character lists (TestDummy, Grace, RangerGuardSmall…).
     const int HiddenFromCharacterList = 1;
@@ -150,11 +156,15 @@ public static class CharacterInjector
             return result;
         }
 
+        // Optional: only used to pick default outfits, builds without them fall back on the template's.
+        var compositeTable = LoadTable(buildDir, CompositeDt, mappings);
+        var outfitsTable = LoadTable(buildDir, OutfitsDt, mappings);
+
         foreach (var mod in characterMods)
         {
             try
             {
-                AddCharacter(staticTable, sandboxTable, mod.CharacterEntry!);
+                AddCharacter(staticTable, sandboxTable, compositeTable, outfitsTable, mod.CharacterEntry!);
                 Console.WriteLine($"  Character {mod.CharacterEntry!.Id} based on {mod.CharacterEntry.Base}");
             }
             catch (Exception ex)
@@ -173,7 +183,7 @@ public static class CharacterInjector
     }
 
     // All checks come first: a refused character must leave both tables untouched.
-    static void AddCharacter(UAsset staticTable, UAsset sandboxTable, CharacterData c)
+    static void AddCharacter(UAsset staticTable, UAsset sandboxTable, UAsset? compositeTable, UAsset? outfitsTable, CharacterData c)
     {
         var staticRows = Rows(staticTable);
         var npcRows = Rows(sandboxTable);
@@ -214,6 +224,10 @@ public static class CharacterInjector
         if (!string.IsNullOrWhiteSpace(c.Profile))
             SetRowHandleTarget(sandboxTable, newNpc, "customizationProfile", c.Profile);
 
+        ApplyDefaultOutfits(newNpc, compositeTable, outfitsTable,
+            string.IsNullOrWhiteSpace(c.Outfits) ? c.Base : c.Outfits,
+            outfitList ?? RowHandleTarget(baseRow, "Outfits"));
+
         var options = AssetInjector.Find<IntPropertyData>(newNpc, "Options");
         AssetInjector.SetInt(options, (options?.Value ?? 0) & ~HiddenFromCharacterList);
 
@@ -225,6 +239,29 @@ public static class CharacterInjector
 
         staticRows.Add(newStatic);
         npcRows.Add(newNpc);
+    }
+
+    /// <summary>
+    /// A default outfit is an index in the character's list, so a template's values only mean something
+    /// on its own list: EmptyMaya asks for outfit 63, and Alissa has 17, which leaves the character bare.
+    /// Takes them from the character owning the list, then brings any index past the list back to the first.
+    /// </summary>
+    static void ApplyDefaultOutfits(StructPropertyData npc, UAsset? compositeTable, UAsset? outfitsTable, string owner, string? listRow)
+    {
+        var rows = compositeTable == null ? [] : Rows(compositeTable);
+        var donor = rows.FirstOrDefault(r => SameName(r.Name.ToString(), owner))
+            ?? rows.FirstOrDefault(r => SameName(RowHandleTarget(r, "StaticData") ?? "", owner));
+        var list = outfitsTable == null || listRow == null ? null : Rows(outfitsTable).FirstOrDefault(r => r.Name.ToString() == listRow);
+        var count = list == null ? (int?)null : AssetInjector.Find<ArrayPropertyData>(list, "Outfits")?.Value?.Length;
+
+        foreach (var field in DefaultOutfitFields)
+        {
+            var value = AssetInjector.Find<IntPropertyData>(npc, field);
+            if (value == null) continue;
+            var fromDonor = donor == null ? null : AssetInjector.Find<IntPropertyData>(donor, field);
+            var index = fromDonor?.Value ?? value.Value;
+            AssetInjector.SetInt(value, count is { } n && index >= n ? 0 : index);
+        }
     }
 
     /// <summary>The list's vanilla outfits, then those mods already add to it.</summary>
