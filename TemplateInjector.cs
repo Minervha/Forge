@@ -55,6 +55,9 @@ public static class TemplateInjector
             var allOutfitMods = addMods.Concat(portMods).ToArray();
 
             var json = outfitsTemplate;
+            foreach (var unresolved in allOutfitMods.Where(m => !outfitsTemplate.Contains($"[{m.Character.ToUpperInvariant()}_OUTFITADD]")))
+                Logger.EmitModError(unresolved.ModId, unresolved, $"no outfit list for character '{unresolved.Character}'");
+
             foreach (var charName in characters)
             {
                 var upper = charName.ToUpperInvariant();

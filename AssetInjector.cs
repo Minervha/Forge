@@ -20,7 +20,7 @@ public static class AssetInjector
     /// Returns null if AutoMod_P is missing (caller falls back to v1 TemplateInjector).
     /// </summary>
     public static Dictionary<string, UAsset>? InjectAll(
-        string buildDir, string usmapPath, ModData[] mods, string[] characters, bool fillEmptySexSlots)
+        string buildDir, string usmapPath, ModData[] mods, bool fillEmptySexSlots)
     {
         var autoModBase = Path.Combine(buildDir, "AutoMod_P");
         if (!Directory.Exists(autoModBase)) return null;
@@ -48,7 +48,7 @@ public static class AssetInjector
         {
             var outfitMods = mods.Where(m => m.Variant == ModVariant.Add || m.Variant == ModVariant.Port).ToArray();
             var asset = SafeLoad.UAsset(outfitsPath, EngineVersion.VER_UE5_4, mappings);
-            InjectGameCharacterOutfits(asset, outfitMods, characters);
+            InjectGameCharacterOutfits(asset, outfitMods);
             result["DT_GameCharacterOutfits"] = asset;
         }
 
@@ -259,7 +259,7 @@ public static class AssetInjector
 
     // ── DT_GameCharacterOutfits ─────────────────────────────────────────────
 
-    static void InjectGameCharacterOutfits(UAsset asset, ModData[] outfitMods, string[] characters)
+    static void InjectGameCharacterOutfits(UAsset asset, ModData[] outfitMods)
     {
         if (outfitMods.Length == 0) return;
         var dtExport = asset.Exports[0] as DataTableExport;
@@ -270,17 +270,14 @@ public static class AssetInjector
         // The outfits DT has one row per character. Each row is a StructPropertyData
         // containing an "Outfits" ArrayPropertyData of DataTableRowHandle structs.
         // We find the matching character row and append handles.
-        foreach (var charName in characters)
-        {
-            var charMods = outfitMods.Where(m =>
-                m.Character.Equals(charName, StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (charMods.Length == 0) continue;
+        var rowNames = rows.Select(r => r.Name.ToString()).ToList();
+        foreach (var unresolved in outfitMods.Where(m => OutfitRows.Resolve(m.Character, rowNames) == null))
+            Logger.EmitModError(unresolved.ModId, unresolved, $"no outfit list for character '{unresolved.Character}'");
 
-            // Find the character's row — row names are "Outfits_{CharName}_{variant}"
-            var prefix = $"Outfits_{charName}";
-            var charRow = rows.FirstOrDefault(r =>
-                r.Name.Value.Value.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-            if (charRow == null) continue;
+        foreach (var group in outfitMods.GroupBy(m => OutfitRows.Resolve(m.Character, rowNames)).Where(g => g.Key != null))
+        {
+            var charMods = group.ToArray();
+            var charRow = rows.First(r => r.Name.ToString() == group.Key);
 
             // Find the Outfits array
             var outfitsArray = Find<ArrayPropertyData>(charRow, "Outfits");
@@ -514,7 +511,7 @@ public static class AssetInjector
     /// Recursive deep clone: UAssetAPI's Clone() copies structs but shares array elements.
     /// This method ensures ALL nested PropertyData objects are independent copies.
     /// </summary>
-    static StructPropertyData DeepClone(StructPropertyData src)
+    internal static StructPropertyData DeepClone(StructPropertyData src)
     {
         var clone = (StructPropertyData)src.Clone();
         // Clone() creates new Value list with same element refs — replace each element
@@ -551,10 +548,10 @@ public static class AssetInjector
         return (PropertyData)prop.Clone();
     }
 
-    static T? Find<T>(StructPropertyData s, string name) where T : PropertyData
+    internal static T? Find<T>(StructPropertyData s, string name) where T : PropertyData
         => s.Value.OfType<T>().FirstOrDefault(p => p.Name.Value.Value == name);
 
-    static void SetSoftObject(UAsset asset, SoftObjectPropertyData? prop, string packagePath, string assetName)
+    internal static void SetSoftObject(UAsset asset, SoftObjectPropertyData? prop, string packagePath, string assetName)
     {
         if (prop == null) return;
         // SoftObjectPropertyData.IsZero is ALWAYS false in game data.

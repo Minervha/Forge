@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-public enum ModVariant { Add, Port, CharacterCustomization, Tattoo }
+public enum ModVariant { Add, Port, CharacterCustomization, Tattoo, Character, OutfitSet }
 
 public class SlotData
 {
@@ -33,6 +33,13 @@ public class TattooData
     public string TraderType = "None";
 }
 
+public class CharacterData
+{
+    public string Id = "", DisplayName = "", Base = "";
+    public string NpcTemplate = "", Profile = "", Outfits = ""; // optional, see CharacterInjector
+    public string MeshPath = "", MeshName = "";
+}
+
 public class ModData
 {
     public string ModId = "";       // directory name in <modsDir>/<modId>/, set by ForgeGenerator parse loop
@@ -44,6 +51,8 @@ public class ModData
     public Dictionary<string, SlotData> Slots = new(); // HEAD, CHEST, HANDS, LEGS, FEET
     public List<CustEntry> CustEntries = new();
     public List<TattooData> TattooEntries = new();
+    public CharacterData? CharacterEntry;
+    public string OutfitsFrom = "", OutfitsTo = "";
 }
 
 public static class ModParser
@@ -71,6 +80,8 @@ public static class ModParser
             ModVariant.Port => ParsePort(content),
             ModVariant.CharacterCustomization => ParseCharCust(content),
             ModVariant.Tattoo => ParseTattoo(content),
+            ModVariant.Character => ParseCharacter(content),
+            ModVariant.OutfitSet => ParseOutfitSet(content),
             _ => throw new Exception($"Unknown variant in {txtPath}")
         };
         mod.SourcePath = txtPath;
@@ -87,6 +98,8 @@ public static class ModParser
             "Character Customization" => ModVariant.CharacterCustomization,
             "Port" => ModVariant.Port,
             "Tattoo" => ModVariant.Tattoo,
+            "Character" => ModVariant.Character,
+            "Outfit Set" => ModVariant.OutfitSet,
             _ => ModVariant.Add
         };
     }
@@ -293,4 +306,31 @@ public static class ModParser
         mod.TattooEntries.Add(tattoo);
         return mod;
     }
+
+    static ModData ParseCharacter(string content) => new()
+    {
+        Variant = ModVariant.Character,
+        ModName = Get(content, "ModName"),
+        Author = Get(content, "Author"),
+        CharacterEntry = new CharacterData
+        {
+            Id = Get(content, "[CHARACTER_ID]"),
+            DisplayName = Get(content, "[CHARACTER_DISPLAY_NAME]"),
+            Base = Get(content, "[CHARACTER_BASE]"),
+            NpcTemplate = Get(content, "[CHARACTER_NPC_TEMPLATE]"),
+            Profile = Get(content, "[CHARACTER_PROFILE]"),
+            Outfits = Get(content, "[CHARACTER_OUTFITS]"),
+            MeshPath = Get(content, "[CHARACTER_MESH_PATH]"),
+            MeshName = Get(content, "[CHARACTER_MESH_NAME]"),
+        },
+    };
+
+    static ModData ParseOutfitSet(string content) => new()
+    {
+        Variant = ModVariant.OutfitSet,
+        ModName = Get(content, "ModName"),
+        Author = Get(content, "Author"),
+        OutfitsFrom = Get(content, "[OUTFITS_FROM]"),
+        OutfitsTo = Get(content, "[OUTFITS_TO]"),
+    };
 }

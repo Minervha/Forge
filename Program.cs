@@ -133,6 +133,8 @@ var dataTables = new (string pakEntry, string friendlyName)[]
     ("WildLifeC/Content/DataTables/NPC/DT_GameCharacterCustomization",  "DT_GameCharacterCustomization"),
     ("WildLifeC/Content/DataTables/Sandbox/DT_SandboxProps",            "DT_SandboxProps"),
     ("WildLifeC/Content/DataTables/DT_Tattoo",                         "DT_Tattoo"),
+    ("WildLifeC/Content/DataTables/NPC/DT_NPCStaticData",               "DT_NPCStaticData"),
+    ("WildLifeC/Content/DataTables/NPC/DT_NPCData_Sandbox",             "DT_NPCData_Sandbox"),
 };
 
 // Only these DTs need NameMap txt files (used by DataTableGenerator)
@@ -331,15 +333,16 @@ static string InjectNameMapPlaceholder(string json)
 static string InjectOutfitAddPlaceholders(string json, List<string> characters)
 {
     var insertions = new List<(int position, string placeholder)>();
+    var rowNames = Regex.Matches(json, @"""Name"":\s*""(Outfits_[^""]*)""").Select(m => m.Groups[1].Value).Distinct().ToList();
 
     foreach (var charName in characters)
     {
         var upperName = charName.ToUpperInvariant();
         var placeholder = $",[{upperName}_OUTFITADD]";
 
-        var rowPattern = new Regex(
-            @"""Name"":\s*""Outfits_" + Regex.Escape(charName) + @"[^""]*""",
-            RegexOptions.None);
+        var outfitRow = OutfitRows.Resolve(charName, rowNames);
+        if (outfitRow == null) continue;
+        var rowPattern = new Regex(@"""Name"":\s*""" + Regex.Escape(outfitRow) + @"""", RegexOptions.None);
         var rowMatch = rowPattern.Match(json);
         if (!rowMatch.Success) continue;
 
@@ -494,38 +497,7 @@ static string InjectCustomizationPlaceholders(string json, List<string> customiz
 // Character name cleaning
 // ═══════════════════════════════════════════════════════════════════════════════
 
-static string CleanCharacterName(string rowName)
-{
-    var name = rowName;
-    if (name.StartsWith("Outfits_"))
-        name = name["Outfits_".Length..];
-
-    string[] suffixPatterns = [
-        "_AB_NSFW", "_NewModel", "_AB2", "_AB3", "_AB", "_A2", "_A", "_B", "_C", "_2", "_3"
-    ];
-
-    foreach (var suffix in suffixPatterns)
-    {
-        if (name.EndsWith(suffix, StringComparison.Ordinal))
-        {
-            name = name[..^suffix.Length];
-            break;
-        }
-    }
-
-    if (name == "RyanYoung") name = "Ryan";
-    if (name == "Max" && rowName.Contains("NewModel")) name = "MaxB";
-
-    if (name.Length > 2 && char.IsUpper(name[^1]) && char.IsLower(name[^2])
-        && name != "SexBot" && name != "MaxB")
-    {
-        var candidate = name[..^1];
-        if (rowName.StartsWith("Outfits_") && candidate.Length > 2)
-            name = candidate;
-    }
-
-    return name;
-}
+static string CleanCharacterName(string rowName) => OutfitRows.CleanName(rowName);
 
 
 // ═══════════════════════════════════════════════════════════════════════════════

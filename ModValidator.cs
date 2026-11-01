@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+using System.Linq;
 
 // Invariants currently checked:
 //   - NameMapEntries: no null / empty / whitespace
 //   - Add: non-empty ClothingId
 //   - Port: non-empty Character
 //   - Tattoo: non-empty TattooEntries with non-empty TattooId on each
+//   - Character: id without spaces, display name, base and mesh
+//   - OutfitSet: source and target characters
 //
 // Invariants deferred (add here when a real failure shape demands it):
 //   - SlotData paths/names: non-"None" values must also be non-empty (no "" / "None" mixes)
@@ -48,6 +51,23 @@ public static class ModValidator {
                             errors.Add($"TattooEntries[{i}].TattooId is empty");
                     }
                 }
+                break;
+
+            case ModVariant.Character:
+                var c = mod.CharacterEntry;
+                if (c == null || string.IsNullOrWhiteSpace(c.Id) || c.Id.Any(char.IsWhiteSpace))
+                    errors.Add("[CHARACTER_ID] is empty or contains spaces");
+                if (c == null || string.IsNullOrWhiteSpace(c.DisplayName))
+                    errors.Add("[CHARACTER_DISPLAY_NAME] is empty");
+                if (c == null || string.IsNullOrWhiteSpace(c.Base))
+                    errors.Add("[CHARACTER_BASE] is empty");
+                if (c == null || string.IsNullOrWhiteSpace(c.MeshPath) || string.IsNullOrWhiteSpace(c.MeshName))
+                    errors.Add("[CHARACTER_MESH_PATH] and [CHARACTER_MESH_NAME] are required");
+                break;
+
+            case ModVariant.OutfitSet:
+                if (string.IsNullOrWhiteSpace(mod.OutfitsFrom) || string.IsNullOrWhiteSpace(mod.OutfitsTo))
+                    errors.Add("[OUTFITS_FROM] and [OUTFITS_TO] are required");
                 break;
 
             case ModVariant.CharacterCustomization:

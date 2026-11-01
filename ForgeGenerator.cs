@@ -147,6 +147,22 @@ public static class ForgeGenerator
                 Console.WriteLine($"  {tattooDedup} duplicate TattooId(s) removed.");
         }
 
+        // Deduplicate Character mods by id — last-wins, same rule as outfits and tattoos.
+        {
+            var seenCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = mods.Count - 1; i >= 0; i--)
+            {
+                if (mods[i].CharacterEntry is not { } character) continue;
+                if (!seenCharacters.Add(character.Id))
+                {
+                    Console.WriteLine($"  DEDUP: dropping duplicate character '{character.Id}' from {mods[i].ModName}");
+                    mods.RemoveAt(i);
+                }
+            }
+        }
+
+        CharacterInjector.PrepareOutfitMods(config.BuildDir, config.UsmapPath, mods);
+
         EmitProgress(15, $"{mods.Count} mods parsed");
 
         // 2. Read character lists
@@ -161,7 +177,7 @@ public static class ForgeGenerator
 
         StartStep("v2-inject");
         directAssets = AssetInjector.InjectAll(
-            config.BuildDir, config.UsmapPath, mods.ToArray(), characters, config.FillEmptySexSlots);
+            config.BuildDir, config.UsmapPath, mods.ToArray(), config.FillEmptySexSlots);
         EndStep();
 
         // Mod breakdown for diagnostics
@@ -169,7 +185,8 @@ public static class ForgeGenerator
         var portModCount = mods.Count(m => m.Variant == ModVariant.Port);
         var custModCount = mods.Count(m => m.Variant == ModVariant.CharacterCustomization);
         var tattooModCount = mods.Count(m => m.Variant == ModVariant.Tattoo);
-        Console.WriteLine($"  Mods breakdown: {addModCount} Add, {portModCount} Port, {custModCount} CharCust, {tattooModCount} Tattoo");
+        var characterModCount = mods.Count(m => m.Variant == ModVariant.Character);
+        Console.WriteLine($"  Mods breakdown: {addModCount} Add, {portModCount} Port, {custModCount} CharCust, {tattooModCount} Tattoo, {characterModCount} Character");
 
         if (directAssets != null)
         {
@@ -191,6 +208,8 @@ public static class ForgeGenerator
             EndStep();
             Console.WriteLine($" {injected.Count} DataTables injected.");
         }
+
+        var characterAssets = CharacterInjector.Inject(config.BuildDir, config.UsmapPath, mods);
 
         EmitProgress(35, "DataTables injected");
 
@@ -284,6 +303,13 @@ public static class ForgeGenerator
                 try { Directory.CreateDirectory(Path.GetDirectoryName(basePath)!); asset.Write(basePath); } catch { }
                 asset.Write(Path.Combine(outDir, $"{dtName}.uasset"));
             }
+        }
+
+        foreach (var (dtName, asset) in characterAssets)
+        {
+            var outDir = Path.Combine(stagingDir, CharacterInjector.DtPaths[dtName]);
+            Directory.CreateDirectory(outDir);
+            asset.Write(Path.Combine(outDir, $"{dtName}.uasset"));
         }
 
         // Wait for all parallel writes

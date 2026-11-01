@@ -75,7 +75,7 @@ mod_folder/
 
 ### DataTables
 
-Four tables are **injected** (rows added by mods); two are **passthrough** (copied unchanged so mods can ship their own assets against them).
+Six tables are **injected** (rows added by mods); two are **passthrough** (copied unchanged so mods can ship their own assets against them).
 
 | DataTable | Purpose | Mode |
 |-----------|---------|------|
@@ -83,12 +83,14 @@ Four tables are **injected** (rows added by mods); two are **passthrough** (copi
 | DT_GameCharacterOutfits | Which characters can wear which outfits | injected — Add, Port |
 | DT_GameCharacterCustomization | Character customization options (hair, skin, eyes) | injected — Character Customization |
 | DT_Tattoo | Tattoo definitions (texture, icon, color, cost) | injected — Tattoo |
+| DT_NPCStaticData | Character mesh, outfit list, customization | injected — Character, only when a Character mod is active |
+| DT_NPCData_Sandbox | Character display name and profile | injected — Character, only when a Character mod is active |
 | DT_GFur | Fur rendering settings | passthrough |
 | DT_SandboxProps | Sandbox props | passthrough |
 
 ## Mod .txt format
 
-Four variants are supported, selected by the `Variant:` line (defaults to `Add` when absent).
+Six variants are supported, selected by the `Variant:` line (defaults to `Add` when absent).
 
 ### Add (default)
 
@@ -179,6 +181,52 @@ NameMap: /Game/Path/To/Texture
 default as follows: icon path/name fall back to the texture path/name, `COST` to
 `100`, `UV_SET` to `Set1`, `TRADER_TYPE` to `None`, `COLOR_A` to `1.0`, and the
 remaining colors/`COVERED_SLOTS` to `0`.
+
+### Character
+
+Adds a new character. The forge copies existing rows from the installed game build and changes the
+mesh and the name, so the mod keeps working when the game updates. The new character shares the outfits
+and customization of its base, including those added by other mods, and every morph target of its mesh
+shows up in the character's Body tab in-game.
+
+```
+Variant: Character
+ModName: MyCharacter
+Author: YourName
+[CHARACTER_ID]: MyCharacter
+[CHARACTER_DISPLAY_NAME]: My Character
+[CHARACTER_BASE]: Shey
+[CHARACTER_NPC_TEMPLATE]: EmptyShey
+[CHARACTER_PROFILE]: Shey
+[CHARACTER_OUTFITS]: Maya
+[CHARACTER_MESH_PATH]: /Game/Mods/MyCharacter/MyCharacter_skMesh
+[CHARACTER_MESH_NAME]: MyCharacter_skMesh
+```
+
+| Field | Meaning |
+|-------|---------|
+| `CHARACTER_ID` | New row name, no spaces. Refused if the game build already has it |
+| `CHARACTER_BASE` | `DT_NPCStaticData` row to copy: skeleton, animations, outfits, customization |
+| `CHARACTER_NPC_TEMPLATE` | *Optional.* `DT_NPCData_Sandbox` row to copy: voice, AI, relations. Defaults to the base's own row, then `Empty{base}`, then the first row built on the base |
+| `CHARACTER_PROFILE` | *Optional.* `customizationProfile` row. Defaults to the template's |
+| `CHARACTER_OUTFITS` | *Optional.* Use another character's outfit list instead of the base's. Meshes are not refitted |
+
+The mesh goes in the mod's `WildLifeC/` tree, cooked against the base's skeleton. An outfit mod with
+`Character: MyCharacter` adds to the list the character uses, which it may share with its base.
+
+### Outfit Set
+
+Copies every outfit of one character to another, in one line instead of one `Port` per outfit. The
+outfits, including those other active mods add to the source, are appended to the target's list so its
+existing outfits keep their position. Meshes are not refitted.
+
+```
+Variant: Outfit Set
+ModName: MayaOutfitsOnTanya
+Author: YourName
+[OUTFITS_FROM]: Maya
+[OUTFITS_TO]: Tanya
+```
 
 ## prepare-build (enable the fast v2 path)
 
