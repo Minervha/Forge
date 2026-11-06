@@ -170,19 +170,7 @@ public static class ForgeGenerator
                 Console.WriteLine($"  {tattooDedup} duplicate TattooId(s) removed.");
         }
 
-        // Deduplicate Character mods by id — last-wins, same rule as outfits and tattoos.
-        {
-            var seenCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (int i = mods.Count - 1; i >= 0; i--)
-            {
-                if (mods[i].CharacterEntry is not { } character) continue;
-                if (!seenCharacters.Add(character.Id))
-                {
-                    Console.WriteLine($"  DEDUP: dropping duplicate character '{character.Id}' from {mods[i].ModName}");
-                    mods.RemoveAt(i);
-                }
-            }
-        }
+        CharacterInjector.DropDuplicateCharacters(mods);
 
         CharacterInjector.PrepareOutfitMods(config.BuildDir, config.UsmapPath, mods);
 

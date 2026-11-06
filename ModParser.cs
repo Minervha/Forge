@@ -90,7 +90,7 @@ public static class ModParser
 
     static ModVariant DetectVariant(string content)
     {
-        var m = Regex.Match(content, @"^Variant:\s*(.*)$", RegexOptions.Multiline);
+        var m = Regex.Match(content, @"^Variant:[ \t]*(.*)$", RegexOptions.Multiline);
         if (!m.Success) return ModVariant.Add; // default
         var v = m.Groups[1].Value.Trim();
         return v switch
@@ -107,7 +107,8 @@ public static class ModParser
     static string Get(string content, string key)
     {
         var escaped = Regex.Escape(key);
-        var m = Regex.Match(content, $@"^{escaped}:\s*(.*)$", RegexOptions.Multiline);
+        // [ \t], not \s: an empty value must stay empty instead of taking the next line.
+        var m = Regex.Match(content, $@"^{escaped}:[ \t]*(.*)$", RegexOptions.Multiline);
         return m.Success ? m.Groups[1].Value.Trim() : "";
     }
 

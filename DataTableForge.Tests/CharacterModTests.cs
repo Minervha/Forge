@@ -96,6 +96,55 @@ public class CharacterModTests
     }
 
     [Fact]
+    public void An_empty_field_stays_empty_instead_of_taking_the_next_line()
+    {
+        var mod = ParseText("""
+            Variant: Character
+            ModName: SheyPlus
+            [CHARACTER_ID]: SheyPlus
+            [CHARACTER_DISPLAY_NAME]:
+            [CHARACTER_BASE]: Shey
+            [CHARACTER_OUTFITS]:
+            [CHARACTER_MESH_PATH]: /Game/Mods/SheyPlus/Body
+            [CHARACTER_MESH_NAME]:
+            """);
+
+        Assert.Equal("", mod.CharacterEntry!.DisplayName);
+        Assert.Equal("Shey", mod.CharacterEntry.Base);
+        Assert.Equal("", mod.CharacterEntry.Outfits);
+        Assert.Equal("", mod.CharacterEntry.MeshName);
+        // Refused for what is really missing, not passed with the next line as its value.
+        Assert.NotEmpty(ModValidator.Validate(mod));
+    }
+
+    static ModData CharacterMod(string modName, string id) => new()
+    {
+        ModName = modName,
+        ModId = modName,
+        Variant = ModVariant.Character,
+        CharacterEntry = new CharacterData { Id = id, DisplayName = id, Base = "Shey", MeshPath = "/Game/X", MeshName = "X" },
+    };
+
+    [Fact]
+    public void A_duplicate_character_id_keeps_the_last_mod_and_warns_the_one_dropped()
+    {
+        var first = CharacterMod("First", "Twin");
+        var second = CharacterMod("Second", "twin");
+        var other = CharacterMod("Other", "Solo");
+        var mods = new List<ModData> { first, other, second };
+
+        var output = new StringWriter();
+        var prev = Console.Out;
+        Console.SetOut(output);
+        try { CharacterInjector.DropDuplicateCharacters(mods); }
+        finally { Console.SetOut(prev); }
+
+        Assert.Equal(new[] { other, second }, mods);
+        Assert.Contains("mod-warning", output.ToString());
+        Assert.Contains("Second also adds the character 'Twin'", output.ToString());
+    }
+
+    [Fact]
     public void Parses_outfit_set_mod()
     {
         var mod = ParseText("""

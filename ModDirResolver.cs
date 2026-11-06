@@ -35,13 +35,16 @@ public static class ModDirResolver
         return Path.Combine(config.ModsDir, modId);
     }
 
-    /// <summary>Rule files of a mod: its root plus AutoMod/, where legacy wlmm imports keep them.</summary>
+    /// <summary>
+    /// Rule files of a mod: its root plus AutoMod/, where legacy wlmm imports keep them. Sorted by name, so the
+    /// "last one wins" of duplicate ids does not depend on the file system's listing order.
+    /// </summary>
     public static List<string> ListRuleFiles(string modDir)
     {
-        var ruleFiles = Directory.GetFiles(modDir, "*.txt").ToList();
+        var ruleFiles = Directory.GetFiles(modDir, "*.txt").OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
         var autoModDir = Path.Combine(modDir, "AutoMod");
         if (Directory.Exists(autoModDir))
-            ruleFiles.AddRange(Directory.GetFiles(autoModDir, "*.txt"));
+            ruleFiles.AddRange(Directory.GetFiles(autoModDir, "*.txt").OrderBy(f => f, StringComparer.OrdinalIgnoreCase));
         return ruleFiles;
     }
 

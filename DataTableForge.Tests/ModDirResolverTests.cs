@@ -108,6 +108,23 @@ public class ModDirResolverTests
     }
 
     [Fact]
+    public void ListRuleFiles_is_sorted_by_name_root_first_so_duplicates_resolve_the_same_everywhere()
+    {
+        var dir = TempModDir();
+        try
+        {
+            foreach (var name in new[] { "c.txt", "A.txt", "b.txt" }) File.WriteAllText(Path.Combine(dir, name), "x");
+            Directory.CreateDirectory(Path.Combine(dir, "AutoMod"));
+            foreach (var name in new[] { "z.txt", "a.txt" }) File.WriteAllText(Path.Combine(dir, "AutoMod", name), "x");
+
+            var names = ModDirResolver.ListRuleFiles(dir).Select(Path.GetFileName);
+
+            Assert.Equal(new[] { "A.txt", "b.txt", "c.txt", "a.txt", "z.txt" }, names);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
     public void CountAssetFiles_counts_files_under_WildLifeC_and_is_zero_without_it()
     {
         var dir = TempModDir();

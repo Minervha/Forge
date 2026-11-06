@@ -47,6 +47,24 @@ public static class CharacterInjector
     }
 
     /// <summary>
+    /// Character mods with the same id (any case): the last one wins, as for outfits and tattoos, and each one
+    /// dropped gets a warning naming the mod kept, so Studio shows why a character is missing.
+    /// </summary>
+    public static void DropDuplicateCharacters(List<ModData> mods)
+    {
+        var kept = new Dictionary<string, ModData>(StringComparer.OrdinalIgnoreCase);
+        for (int i = mods.Count - 1; i >= 0; i--)
+        {
+            if (mods[i].CharacterEntry is not { } character) continue;
+            if (kept.TryAdd(character.Id, mods[i])) continue;
+            Console.WriteLine($"  DEDUP: dropping duplicate character '{character.Id}' from {mods[i].ModName}");
+            Logger.EmitModWarning(mods[i].ModId, mods[i],
+                $"{kept[character.Id].ModName} also adds the character '{character.Id}': this one was ignored");
+            mods.RemoveAt(i);
+        }
+    }
+
+    /// <summary>
     /// Runs before injection, on both forge paths: turns Outfit Set mods into Port entries, and points
     /// Add/Port mods aimed at a new character to the list that character uses.
     /// </summary>
