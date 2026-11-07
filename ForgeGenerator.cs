@@ -170,6 +170,7 @@ public static class ForgeGenerator
                 Console.WriteLine($"  {tattooDedup} duplicate TattooId(s) removed.");
         }
 
+        CharacterInjector.SetAsideCharacterModsWithoutTables(config.BuildDir, mods);
         CharacterInjector.DropDuplicateCharacters(mods);
 
         CharacterInjector.PrepareOutfitMods(config.BuildDir, config.UsmapPath, mods);

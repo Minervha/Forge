@@ -126,6 +126,39 @@ public class CharacterModTests
     };
 
     [Fact]
+    public void On_a_build_without_character_tables_a_character_mod_is_set_aside_whole_with_a_warning()
+    {
+        var build = Path.Combine(Path.GetTempPath(), $"forge-build-{System.Guid.NewGuid():N}");
+        Directory.CreateDirectory(build);
+        try
+        {
+            var character = CharacterMod("NewGirl", "NewGirl");
+            var itsOutfit = new ModData { ModName = "NewGirl", ModId = "NewGirl", Variant = ModVariant.Add, Character = "NewGirl", ClothingId = "Dress" };
+            var other = new ModData { ModName = "Other", ModId = "Other", Variant = ModVariant.Add, Character = "Maya", ClothingId = "Top" };
+            var mods = new List<ModData> { character, itsOutfit, other };
+
+            var output = new StringWriter();
+            var prev = Console.Out;
+            Console.SetOut(output);
+            try { CharacterInjector.SetAsideCharacterModsWithoutTables(build, mods); }
+            finally { Console.SetOut(prev); }
+
+            Assert.Equal(new[] { other }, mods);
+            Assert.Contains("mod-warning", output.ToString());
+            Assert.DoesNotContain("mod-error", output.ToString());
+            Assert.Contains("stays installed and is ignored until a supported build is installed", output.ToString());
+
+            // Once the build has the tables, the same mod is used again.
+            File.WriteAllText(Path.Combine(build, "DT_NPCStaticData_Debug.json"), "{}");
+            File.WriteAllText(Path.Combine(build, "DT_NPCData_Sandbox_Debug.json"), "{}");
+            var again = new List<ModData> { character, itsOutfit, other };
+            CharacterInjector.SetAsideCharacterModsWithoutTables(build, again);
+            Assert.Equal(3, again.Count);
+        }
+        finally { Directory.Delete(build, true); }
+    }
+
+    [Fact]
     public void A_duplicate_character_id_keeps_the_last_mod_and_warns_the_one_dropped()
     {
         var first = CharacterMod("First", "Twin");

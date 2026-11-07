@@ -151,6 +151,33 @@ public static class CharacterInjector
     }
 
     /// <summary>
+    /// This build's data has the character tables. Only some builds have them (2026.09.25 Full Build 1 at Studio
+    /// 1.2.0); the others get them when their data archive is republished.
+    /// </summary>
+    public static bool BuildHasCharacterTables(string buildDir) =>
+        File.Exists(Path.Combine(buildDir, $"{StaticDt}_Debug.json")) &&
+        File.Exists(Path.Combine(buildDir, $"{SandboxDt}_Debug.json"));
+
+    /// <summary>
+    /// On a build without the character tables, every mod that adds a character is set aside whole (its outfits,
+    /// outfit sets and assets too) with a warning, not an error: it stays installed and is used again as soon as a
+    /// build with these tables is installed. Other mods are untouched.
+    /// </summary>
+    public static void SetAsideCharacterModsWithoutTables(string buildDir, List<ModData> mods)
+    {
+        if (BuildHasCharacterTables(buildDir)) return;
+        var modIds = mods.Where(m => m.CharacterEntry != null).Select(m => m.ModId).Distinct().ToList();
+        foreach (var modId in modIds)
+        {
+            var mod = mods.First(m => m.ModId == modId);
+            Console.WriteLine($"  Character mod {mod.ModName} set aside: this game build has no character tables");
+            Logger.EmitModWarning(modId, mod,
+                "This mod adds a character, which this game build does not support yet: it stays installed and is ignored until a supported build is installed");
+            mods.RemoveAll(m => m.ModId == modId);
+        }
+    }
+
+    /// <summary>
     /// Injects Character mods and returns only the tables that changed (none when nothing was added).
     /// A mod that can't be applied gets a mod-error and leaves <paramref name="mods"/>: its assets stay out of the pak.
     /// </summary>
